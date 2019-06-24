@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -257,30 +258,13 @@ func (c *Controller) syncHandler(key string) error {
 	glog.Infof("FunctionIngress name: %v", deploymentName)
 
 	ingresses := c.ingressLister.Ingresses(namespace)
-	_, gotErr := ingresses.Get(function.Name)
+	ingress, gotErr := ingresses.Get(function.Name)
 	if errors.IsNotFound(gotErr) {
 		glog.Infof("Need to create FunctionIngress: %v", deploymentName)
 
-		rules := []v1beta1.IngressRule{
-			v1beta1.IngressRule{
-				Host: function.Spec.Domain,
-				IngressRuleValue: v1beta1.IngressRuleValue{
-					HTTP: &v1beta1.HTTPIngressRuleValue{
-						Paths: []v1beta1.HTTPIngressPath{
-							v1beta1.HTTPIngressPath{
-								Path: "/(.*)",
-								Backend: v1beta1.IngressBackend{
-									ServiceName: "gateway",
-									ServicePort: intstr.IntOrString{
-										IntVal: 8080,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
+		rules := makeRules(function.Spec.Domain)
+
+		specJSON, _ := json.Marshal(function)
 
 		newIngress := v1beta1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
@@ -289,6 +273,7 @@ func (c *Controller) syncHandler(key string) error {
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class":                "nginx",
 					"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
+					"com.openfaas.spec":                          string(specJSON),
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(function, schema.GroupVersionKind{
@@ -302,9 +287,36 @@ func (c *Controller) syncHandler(key string) error {
 				Rules: rules,
 			},
 		}
+
 		_, createErr := c.kubeclientset.Extensions().Ingresses(namespace).Create(&newIngress)
 		if createErr != nil {
 			glog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
+		}
+
+		c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+		return nil
+	}
+
+	// Update the Deployment resource if the Function definition differs
+	if ingressNeedsUpdate(ingress, function) {
+		glog.Infoln("Needs update.")
+
+		updated := ingress.DeepCopy()
+
+		rules := makeRules(function.Spec.Domain)
+
+		specJSON, _ := json.Marshal(function)
+
+		updated.Spec.Rules = rules
+		updated.ObjectMeta.Name = name
+		updated.ObjectMeta.Namespace = namespace
+
+		updated.Annotations["com.openfaas.spec"] = string(specJSON)
+
+		_, updateErr := c.kubeclientset.Extensions().Ingresses(namespace).Update(updated)
+		if updateErr != nil {
+			glog.Errorf("error updating ingress: %v", updateErr)
+			return updateErr
 		}
 	}
 
@@ -317,6 +329,20 @@ func (c *Controller) syncHandler(key string) error {
 
 	c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
+}
+
+func ingressNeedsUpdate(ingress *v1beta1.Ingress, function *faasv1.FunctionIngress) bool {
+	if val, ok := ingress.Annotations["com.openfaas.spec"]; ok && len(val) > 0 {
+		fni := faasv1.FunctionIngress{}
+		unmarshalErr := json.Unmarshal([]byte(val), &fni)
+		if unmarshalErr != nil {
+			glog.Errorf(unmarshalErr.Error())
+			return true
+		}
+
+		return cmp.Equal(fni, *function)
+	}
+	return true
 }
 
 func (c *Controller) updateFunctionStatus(function *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
@@ -387,17 +413,26 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 }
 
-// getSecrets queries Kubernetes for a list of secrets by name in the given k8s namespace.
-func (c *Controller) getSecrets(namespace string, secretNames []string) (map[string]*corev1.Secret, error) {
-	secrets := map[string]*corev1.Secret{}
-
-	for _, secretName := range secretNames {
-		secret, err := c.kubeclientset.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-		if err != nil {
-			return secrets, err
-		}
-		secrets[secretName] = secret
+func makeRules(domain string) []v1beta1.IngressRule {
+	return []v1beta1.IngressRule{
+		v1beta1.IngressRule{
+			Host: domain,
+			IngressRuleValue: v1beta1.IngressRuleValue{
+				HTTP: &v1beta1.HTTPIngressRuleValue{
+					Paths: []v1beta1.HTTPIngressPath{
+						v1beta1.HTTPIngressPath{
+							Path: "/(.*)",
+							Backend: v1beta1.IngressBackend{
+								ServiceName: "gateway",
+								ServicePort: intstr.IntOrString{
+									IntVal: 8080,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
-	return secrets, nil
 }
