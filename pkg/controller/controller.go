@@ -16,6 +16,7 @@ import (
 	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,7 +41,6 @@ const (
 	// ErrResourceExists is used as part of the Event 'reason' when a Function fails
 	// to sync due to a Deployment of the same name already existing.
 	ErrResourceExists = "ErrResourceExists"
-
 	// MessageResourceExists is the message used for Events when a resource
 	// fails to sync due to a Deployment already existing
 	MessageResourceExists = "Resource %q already exists and is not managed by controller"
@@ -57,6 +57,7 @@ type Controller struct {
 	faasclientset clientset.Interface
 
 	functionsLister listers.FunctionIngressLister
+
 	functionsSynced cache.InformerSynced
 
 	ingressLister extensionsv1beta1.IngressLister
@@ -101,7 +102,8 @@ func NewController(
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
-	ingressLister := kubeInformerFactory.Extensions().V1beta1().Ingresses().Lister()
+	ingressInformer := kubeInformerFactory.Extensions().V1beta1().Ingresses()
+	ingressLister := ingressInformer.Lister()
 
 	controller := &Controller{
 		kubeclientset:   kubeclientset,
@@ -115,9 +117,9 @@ func NewController(
 
 	glog.Info("Setting up event handlers")
 
-	//  Add Function (OpenFaaS CRD-entry) Informer
+	//  Add FunctionIngress Informer
 	//
-	// Set up an event handler for when Function resources change
+	// Set up an event handler for when FunctionIngress resources change
 	functionIngress.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueFunction,
 		UpdateFunc: func(old, new interface{}) {
@@ -133,6 +135,10 @@ func NewController(
 				controller.enqueueFunction(new)
 			}
 		},
+	})
+
+	ingressInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: controller.handleObject,
 	})
 
 	// Set up an event handler for when functions related resources like pods, deployments, replica sets
@@ -283,6 +289,13 @@ func (c *Controller) syncHandler(key string) error {
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class":                "nginx",
 					"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(function, schema.GroupVersionKind{
+						Group:   faasv1.SchemeGroupVersion.Group,
+						Version: faasv1.SchemeGroupVersion.Version,
+						Kind:    faasKind,
+					}),
 				},
 			},
 			Spec: v1beta1.IngressSpec{
