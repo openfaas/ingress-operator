@@ -43,8 +43,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=openfaas.com, Version=v1alpha2
-	case v1alpha2.SchemeGroupVersion.WithResource("functions"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openfaas().V1alpha2().Functions().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("functioningresses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openfaas().V1alpha2().FunctionIngresses().Informer()}, nil
 
 	}
 

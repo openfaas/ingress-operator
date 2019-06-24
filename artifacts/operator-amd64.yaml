@@ -18,32 +18,8 @@ spec:
     spec:
       serviceAccountName: ingress-operator
       containers:
-      - name: gateway
-        image: functions/gateway:0.8.2
-        imagePullPolicy: Always
-        env:
-        - name: functions_provider_url
-          value: "http://localhost:8081/"
-        - name: faas_nats_address
-          value: "nats.openfaas"
-        - name: faas_nats_port
-          value: "4222"
-        - name: read_timeout
-          value: "20s"
-        - name: write_timeout
-          value: "20s"
-        - name: direct_functions
-          value: "true"
-        - name: direct_functions_suffix
-          value: "openfaas-fn.svc.cluster.local."
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        resources:
-          limits:
-            memory: 512Mi
       - name: operator
-        image: functions/ingress-operator:0.7.1
+        image: functions/ingress-operator:0.1.0
         imagePullPolicy: Always
         command:
           - ./ingress-operator
@@ -51,7 +27,7 @@ spec:
           - -v=2
         env:
         - name: function_namespace
-          value: openfaas-fn
+          value: openfaas
         ports:
         - containerPort: 8081
           protocol: TCP

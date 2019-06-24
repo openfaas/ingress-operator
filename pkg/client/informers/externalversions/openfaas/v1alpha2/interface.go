@@ -14,8 +14,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Functions returns a FunctionInformer.
-	Functions() FunctionInformer
+	// FunctionIngresses returns a FunctionIngressInformer.
+	FunctionIngresses() FunctionIngressInformer
 }
 
 type version struct {
@@ -29,7 +29,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Functions returns a FunctionInformer.
-func (v *version) Functions() FunctionInformer {
-	return &functionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// FunctionIngresses returns a FunctionIngressInformer.
+func (v *version) FunctionIngresses() FunctionIngressInformer {
+	return &functionIngressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

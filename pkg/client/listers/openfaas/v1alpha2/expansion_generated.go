@@ -8,10 +8,10 @@ Licensed under the MIT license. See LICENSE file in the project root for full li
 
 package v1alpha2
 
-// FunctionListerExpansion allows custom methods to be added to
-// FunctionLister.
-type FunctionListerExpansion interface{}
+// FunctionIngressListerExpansion allows custom methods to be added to
+// FunctionIngressLister.
+type FunctionIngressListerExpansion interface{}
 
-// FunctionNamespaceListerExpansion allows custom methods to be added to
-// FunctionNamespaceLister.
-type FunctionNamespaceListerExpansion interface{}
+// FunctionIngressNamespaceListerExpansion allows custom methods to be added to
+// FunctionIngressNamespaceLister.
+type FunctionIngressNamespaceListerExpansion interface{}

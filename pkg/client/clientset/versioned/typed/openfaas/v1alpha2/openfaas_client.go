@@ -17,7 +17,7 @@ import (
 
 type OpenfaasV1alpha2Interface interface {
 	RESTClient() rest.Interface
-	FunctionsGetter
+	FunctionIngressesGetter
 }
 
 // OpenfaasV1alpha2Client is used to interact with features provided by the openfaas.com group.
@@ -25,8 +25,8 @@ type OpenfaasV1alpha2Client struct {
 	restClient rest.Interface
 }
 
-func (c *OpenfaasV1alpha2Client) Functions(namespace string) FunctionInterface {
-	return newFunctions(c, namespace)
+func (c *OpenfaasV1alpha2Client) FunctionIngresses(namespace string) FunctionIngressInterface {
+	return newFunctionIngresses(c, namespace)
 }
 
 // NewForConfig creates a new OpenfaasV1alpha2Client for the given config.

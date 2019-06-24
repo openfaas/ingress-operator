@@ -13,15 +13,18 @@ import (
 	listers "github.com/openfaas-incubator/ingress-operator/pkg/client/listers/openfaas/v1alpha2"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	appslisters "k8s.io/client-go/listers/apps/v1beta2"
+	extensionsv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
+
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -30,7 +33,6 @@ import (
 
 const controllerAgentName = "ingress-operator"
 const faasKind = "Function"
-const functionPort = 8080
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a Function is synced
@@ -41,10 +43,10 @@ const (
 
 	// MessageResourceExists is the message used for Events when a resource
 	// fails to sync due to a Deployment already existing
-	MessageResourceExists = "Resource %q already exists and is not managed by OpenFaaS"
+	MessageResourceExists = "Resource %q already exists and is not managed by controller"
 	// MessageResourceSynced is the message used for an Event fired when a Function
 	// is synced successfully
-	MessageResourceSynced = "Function synced successfully"
+	MessageResourceSynced = "FunctionIngress synced successfully"
 )
 
 // Controller is the controller implementation for Function resources
@@ -54,10 +56,10 @@ type Controller struct {
 	// faasclientset is a clientset for our own API group
 	faasclientset clientset.Interface
 
-	deploymentsLister appslisters.DeploymentLister
-	deploymentsSynced cache.InformerSynced
-	functionsLister   listers.FunctionLister
-	functionsSynced   cache.InformerSynced
+	functionsLister listers.FunctionIngressLister
+	functionsSynced cache.InformerSynced
+
+	ingressLister extensionsv1beta1.IngressLister
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -68,17 +70,14 @@ type Controller struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
-
-	// OpenFaaS function factory
-	factory FunctionFactory
 }
 
-func checkCustomResourceType(obj interface{}) (faasv1.Function, bool) {
-	var fn *faasv1.Function
+func checkCustomResourceType(obj interface{}) (faasv1.FunctionIngress, bool) {
+	var fn *faasv1.FunctionIngress
 	var ok bool
-	if fn, ok = obj.(*faasv1.Function); !ok {
+	if fn, ok = obj.(*faasv1.FunctionIngress); !ok {
 		glog.Errorf("Event Watch received an invalid object: %#v", obj)
-		return faasv1.Function{}, false
+		return faasv1.FunctionIngress{}, false
 	}
 	return *fn, true
 }
@@ -88,12 +87,9 @@ func NewController(
 	kubeclientset kubernetes.Interface,
 	faasclientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	faasInformerFactory informers.SharedInformerFactory,
-	factory FunctionFactory) *Controller {
+	functionIngressFactory informers.SharedInformerFactory) *Controller {
 
-	// obtain references to shared index informers for the Deployment and Function types
-	deploymentInformer := kubeInformerFactory.Apps().V1beta2().Deployments()
-	faasInformer := faasInformerFactory.Openfaas().V1alpha2().Functions()
+	functionIngress := functionIngressFactory.Openfaas().V1alpha2().FunctionIngresses()
 
 	// Create event broadcaster
 	// Add o6s types to the default Kubernetes Scheme so Events can be
@@ -105,16 +101,16 @@ func NewController(
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
+	ingressLister := kubeInformerFactory.Extensions().V1beta1().Ingresses().Lister()
+
 	controller := &Controller{
-		kubeclientset:     kubeclientset,
-		faasclientset:     faasclientset,
-		deploymentsLister: deploymentInformer.Lister(),
-		deploymentsSynced: deploymentInformer.Informer().HasSynced,
-		functionsLister:   faasInformer.Lister(),
-		functionsSynced:   faasInformer.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Functions"),
-		recorder:          recorder,
-		factory:           factory,
+		kubeclientset:   kubeclientset,
+		faasclientset:   faasclientset,
+		functionsLister: functionIngress.Lister(),
+		functionsSynced: functionIngress.Informer().HasSynced,
+		ingressLister:   ingressLister,
+		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "FunctionIngresses"),
+		recorder:        recorder,
 	}
 
 	glog.Info("Setting up event handlers")
@@ -122,7 +118,7 @@ func NewController(
 	//  Add Function (OpenFaaS CRD-entry) Informer
 	//
 	// Set up an event handler for when Function resources change
-	faasInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	functionIngress.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueFunction,
 		UpdateFunc: func(old, new interface{}) {
 			oldFn, ok := checkCustomResourceType(old)
@@ -171,7 +167,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	// Start the informer factories to begin populating the informer caches
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.deploymentsSynced, c.functionsSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.functionsSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -240,11 +236,11 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the Function resource with this namespace/name
-	function, err := c.functionsLister.Functions(namespace).Get(name)
+	function, err := c.functionsLister.FunctionIngresses(namespace).Get(name)
 	if err != nil {
 		// The Function resource may no longer exist, in which case we stop processing.
 		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("function '%s' in work queue no longer exists", key))
+			runtime.HandleError(fmt.Errorf("function ingress '%s' in work queue no longer exists", key))
 			return nil
 		}
 
@@ -252,42 +248,50 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	deploymentName := function.Spec.Name
-	if deploymentName == "" {
-		// We choose to absorb the error here as the worker would requeue the
-		// resource otherwise. Instead, the next time the resource is updated
-		// the resource will be queued again.
-		runtime.HandleError(fmt.Errorf("%s: deployment name must be specified", key))
-		return nil
-	}
+	glog.Infof("FunctionIngress name: %v", deploymentName)
 
-	// Get the deployment with the name specified in Function.spec
-	deployment, err := c.deploymentsLister.Deployments(function.Namespace).Get(deploymentName)
-	// If the resource doesn't exist, we'll create it
-	if errors.IsNotFound(err) {
-		err = nil
-		existingSecrets, err := c.getSecrets(function.Namespace, function.Spec.Secrets)
-		if err != nil {
-			return err
+	ingresses := c.ingressLister.Ingresses(namespace)
+	_, gotErr := ingresses.Get(function.Name)
+	if errors.IsNotFound(gotErr) {
+		glog.Infof("Need to create FunctionIngress: %v", deploymentName)
+
+		rules := []v1beta1.IngressRule{
+			v1beta1.IngressRule{
+				Host: function.Spec.Domain,
+				IngressRuleValue: v1beta1.IngressRuleValue{
+					HTTP: &v1beta1.HTTPIngressRuleValue{
+						Paths: []v1beta1.HTTPIngressPath{
+							v1beta1.HTTPIngressPath{
+								Path: "/(.*)",
+								Backend: v1beta1.IngressBackend{
+									ServiceName: "gateway",
+									ServicePort: intstr.IntOrString{
+										IntVal: 8080,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		}
 
-		glog.Infof("Creating deployment for '%s'", function.Spec.Name)
-		deployment, err = c.kubeclientset.AppsV1beta2().Deployments(function.Namespace).Create(
-			newDeployment(function, existingSecrets, c.factory),
-		)
-	}
-
-	svcGetOptions := metav1.GetOptions{}
-	_, getSvcErr := c.kubeclientset.CoreV1().Services(function.Namespace).Get(deploymentName, svcGetOptions)
-	if errors.IsNotFound(getSvcErr) {
-		glog.Infof("Creating ClusterIP service for '%s'", function.Spec.Name)
-		if _, err := c.kubeclientset.CoreV1().Services(function.Namespace).Create(newService(function)); err != nil {
-			// If an error occurs during Service Create, we'll requeue the item
-			if errors.IsAlreadyExists(err) {
-				err = nil
-				glog.V(2).Infof("ClusterIP service '%s' already exists. Skipping creation.", function.Spec.Name)
-			} else {
-				return err
-			}
+		newIngress := v1beta1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+				Annotations: map[string]string{
+					"kubernetes.io/ingress.class":                "nginx",
+					"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
+				},
+			},
+			Spec: v1beta1.IngressSpec{
+				Rules: rules,
+			},
+		}
+		_, createErr := c.kubeclientset.Extensions().Ingresses(namespace).Create(&newIngress)
+		if createErr != nil {
+			glog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
 		}
 	}
 
@@ -298,74 +302,22 @@ func (c *Controller) syncHandler(key string) error {
 		return fmt.Errorf("transient error: %v", err)
 	}
 
-	// If the Deployment is not controlled by this Function resource, we should log
-	// a warning to the event recorder and ret
-	if !metav1.IsControlledBy(deployment, function) {
-		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
-		c.recorder.Event(function, corev1.EventTypeWarning, ErrResourceExists, msg)
-		return fmt.Errorf(msg)
-	}
-
-	// Update the Deployment resource if the Function definition differs
-	if deploymentNeedsUpdate(function, deployment) {
-		glog.Infof("Updating deployment for '%s'", function.Spec.Name)
-
-		existingSecrets, err := c.getSecrets(function.Namespace, function.Spec.Secrets)
-		if err != nil {
-			return err
-		}
-
-		deployment, err = c.kubeclientset.AppsV1beta2().Deployments(function.Namespace).Update(
-			newDeployment(function, existingSecrets, c.factory),
-		)
-
-		if err != nil {
-			glog.Errorf("Updating deployment for '%s' failed: %v", function.Spec.Name, err)
-		}
-
-		existingService, err := c.kubeclientset.CoreV1().Services(function.Namespace).Get(function.Spec.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		existingService.Annotations = makeAnnotations(function)
-		_, err = c.kubeclientset.CoreV1().Services(function.Namespace).Update(existingService)
-		if err != nil {
-			glog.Errorf("Updating service for '%s' failed: %v", function.Spec.Name, err)
-		}
-	}
-
-	// If an error occurs during Update, we'll requeue the item so we can
-	// attempt processing again later. THis could have been caused by a
-	// temporary network failure, or any other transient reason.
-	if err != nil {
-		return err
-	}
-
-	// Finally, we update the status block of the Function resource to reflect the
-	// current state of the world
-	err = c.updateFunctionStatus(function, deployment)
-	if err != nil {
-		return err
-	}
-
 	c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }
 
-func (c *Controller) updateFunctionStatus(function *faasv1.Function, deployment *appsv1beta2.Deployment) error {
+func (c *Controller) updateFunctionStatus(function *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
 	// TODO: enable status on K8s 1.12
 	return nil
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	functionCopy := function.DeepCopy()
-	functionCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the Function resource. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	_, err := c.faasclientset.OpenfaasV1alpha2().Functions(function.Namespace).Update(functionCopy)
+	_, err := c.faasclientset.OpenfaasV1alpha2().FunctionIngresses(function.Namespace).Update(functionCopy)
 	return err
 }
 
@@ -411,7 +363,7 @@ func (c *Controller) handleObject(obj interface{}) {
 			return
 		}
 
-		function, err := c.functionsLister.Functions(object.GetNamespace()).Get(ownerRef.Name)
+		function, err := c.functionsLister.FunctionIngresses(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
 			glog.Infof("Function '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
 			return

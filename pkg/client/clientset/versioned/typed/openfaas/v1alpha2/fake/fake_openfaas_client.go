@@ -18,8 +18,8 @@ type FakeOpenfaasV1alpha2 struct {
 	*testing.Fake
 }
 
-func (c *FakeOpenfaasV1alpha2) Functions(namespace string) v1alpha2.FunctionInterface {
-	return &FakeFunctions{c, namespace}
+func (c *FakeOpenfaasV1alpha2) FunctionIngresses(namespace string) v1alpha2.FunctionIngressInterface {
+	return &FakeFunctionIngresses{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
