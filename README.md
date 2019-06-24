@@ -20,5 +20,5 @@ Local testing:
 ```
 kubectl apply -f ./artifacts/
 
-go build && ./ingress-operator -kubeconfig=./config
+kubectl logs -n openfaas deploy/ingress-operator
 ```
