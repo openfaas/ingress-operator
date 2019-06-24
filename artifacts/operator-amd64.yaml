@@ -2,24 +2,24 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: gateway
+  name: ingress-operator
   namespace: openfaas
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gateway
+      app: ingress-operator
   template:
     metadata:
       labels:
-        app: gateway
+        app: ingress-operator
       annotations:
         prometheus.io.scrape: 'true'
     spec:
       serviceAccountName: ingress-operator
       containers:
       - name: operator
-        image: functions/ingress-operator:0.1.0
+        image: openfaas/ingress-operator:0.1.0
         imagePullPolicy: Always
         command:
           - ./ingress-operator
@@ -28,9 +28,8 @@ spec:
         env:
         - name: function_namespace
           value: openfaas
-        ports:
-        - containerPort: 8081
-          protocol: TCP
         resources:
           limits:
-            memory: 512Mi
+            memory: 128Mi
+          requests:
+            memory: 25Mi
