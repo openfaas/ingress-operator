@@ -31,6 +31,12 @@ Exploring the schema:
 
 This is work-in-progress prototype and only suitable for development and testing. Contributions and suggestions are welcome.
 
+Todo:
+- [x] Create `Ingress` records for HTTP
+- [ ] Create `Ingress` records for HTTPS
+- [ ] Create cert-manager `Certificate` records
+- [ ] Add `.travis.yml` for CI
+
 ## Deployment
 
 ### Pre-reqs
