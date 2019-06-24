@@ -97,4 +97,4 @@ This project follows the [OpenFaaS contributing guide](./CONTRIBUTING.md)
 
 ## LICENSE
 
-MIT1
+MIT

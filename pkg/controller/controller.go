@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
+
 	"github.com/google/go-cmp/cmp"
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
@@ -34,7 +36,7 @@ import (
 )
 
 const controllerAgentName = "ingress-operator"
-const faasKind = "Function"
+const faasIngressKind = "FunctionIngress"
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a Function is synced
@@ -279,7 +281,7 @@ func (c *Controller) syncHandler(key string) error {
 					*metav1.NewControllerRef(function, schema.GroupVersionKind{
 						Group:   faasv1.SchemeGroupVersion.Group,
 						Version: faasv1.SchemeGroupVersion.Version,
-						Kind:    faasKind,
+						Kind:    faasIngressKind,
 					}),
 				},
 			},
@@ -297,9 +299,22 @@ func (c *Controller) syncHandler(key string) error {
 		return nil
 	}
 
+	old := faasv1.FunctionIngress{}
+
+	if val, ok := ingress.Annotations["com.openfaas.spec"]; ok && len(val) > 0 {
+		unmarshalErr := json.Unmarshal([]byte(val), &old)
+		if unmarshalErr != nil {
+			return pkgerrors.Wrap(unmarshalErr, "unable to unmarshal from field com.openfaas.spec")
+		}
+	}
+
 	// Update the Deployment resource if the Function definition differs
-	if ingressNeedsUpdate(ingress, function) {
-		glog.Infoln("Needs update.")
+	if ingressNeedsUpdate(&old, function) {
+		glog.Infof("Need to update FunctionIngress: %v", deploymentName)
+
+		if old.Spec.Name != function.Spec.Name {
+			return fmt.Errorf("cannot rename object")
+		}
 
 		updated := ingress.DeepCopy()
 
@@ -308,9 +323,8 @@ func (c *Controller) syncHandler(key string) error {
 		specJSON, _ := json.Marshal(function)
 
 		updated.Spec.Rules = rules
-		updated.ObjectMeta.Name = name
-		updated.ObjectMeta.Namespace = namespace
 
+		updated.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
 		updated.Annotations["com.openfaas.spec"] = string(specJSON)
 
 		_, updateErr := c.kubeclientset.Extensions().Ingresses(namespace).Update(updated)
@@ -331,18 +345,9 @@ func (c *Controller) syncHandler(key string) error {
 	return nil
 }
 
-func ingressNeedsUpdate(ingress *v1beta1.Ingress, function *faasv1.FunctionIngress) bool {
-	if val, ok := ingress.Annotations["com.openfaas.spec"]; ok && len(val) > 0 {
-		fni := faasv1.FunctionIngress{}
-		unmarshalErr := json.Unmarshal([]byte(val), &fni)
-		if unmarshalErr != nil {
-			glog.Errorf(unmarshalErr.Error())
-			return true
-		}
+func ingressNeedsUpdate(old, function *faasv1.FunctionIngress) bool {
 
-		return cmp.Equal(fni, *function)
-	}
-	return true
+	return !cmp.Equal(old.Spec, function.Spec)
 }
 
 func (c *Controller) updateFunctionStatus(function *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
@@ -394,17 +399,18 @@ func (c *Controller) handleObject(obj interface{}) {
 		}
 		glog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
 	}
+
 	glog.V(4).Infof("Processing object: %s", object.GetName())
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
 		// If this object is not owned by a function, we should not do anything more
 		// with it.
-		if ownerRef.Kind != faasKind {
+		if ownerRef.Kind != faasIngressKind {
 			return
 		}
 
 		function, err := c.functionsLister.FunctionIngresses(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
-			glog.Infof("Function '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
+			glog.Infof("FunctionIngress '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
 			return
 		}
 
