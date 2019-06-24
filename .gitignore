@@ -17,4 +17,4 @@ faas-o6s
 .idea/
 
 ingress-operator
-./config
+config
