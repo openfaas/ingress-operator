@@ -1,6 +1,25 @@
 OpenFaaS controller for FunctionIngress
 ====
 
+## Why is this needed?
+
+OpenFaaS functions are created as pairs with Deployment and Service objects, which eventually go on to create a Pod.
+
+Deployments should not be exposed directly, but accessed via the OpenFaaS Gateway service.
+
+The gateway has a number of rules including:
+* providing HA through N replicas
+* adding tracing IDs
+* adding authz
+* collecting metrics
+* scaling endpoints from zero
+
+Users started to create `Ingress` records pointing at the gateway for each public endpoint they wanted to host with a specific website address. This Operator automates that.
+
+> See also: [Proposal: define custom hostname for functions #1082](https://github.com/openfaas/faas/issues/1082)
+
+## Schema
+
 This is an Operator / controller to build Kubernetes `Ingress` and JetStack `Certificate` objects for functions.
 
 ```yaml
