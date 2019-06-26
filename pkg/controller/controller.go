@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/google/go-cmp/cmp"
 	cmv1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
@@ -268,8 +269,22 @@ func (c *Controller) syncHandler(key string) error {
 
 	ingresses := c.ingressLister.Ingresses(namespace)
 	ingress, gotErr := ingresses.Get(function.Name)
-	if errors.IsNotFound(gotErr) {
-		glog.Infof("Need to create FunctionIngress: %v", fniName)
+	createIngress := errors.IsNotFound(gotErr)
+
+	var createCert bool
+
+	if function.Spec.TLS {
+		certName := function.ObjectMeta.Name + "certificate"
+		_, err := c.cmclientset.Certificates(function.ObjectMeta.Namespace).Get(certName, v1.GetOptions{})
+		notFound := errors.IsNotFound(gotErr)
+		if err != nil && !notFound {
+			glog.Errorf("cannot get cert: %s in %s, error: %s", certName, namespace, err.Error())
+		}
+		createCert = true
+	}
+
+	if createCert {
+		glog.Infof("Need to create certifcate for FunctionIngress: %v", fniName)
 
 		ingressClass := "nginx"
 		if function.Spec.TLS {
@@ -285,7 +300,9 @@ func (c *Controller) syncHandler(key string) error {
 			}
 
 		}
+	}
 
+	if createIngress {
 		rules := makeRules(function.Spec.Domain)
 		tls := makeTLS(function)
 
@@ -530,4 +547,6 @@ func makeCert(ingressClass string, function *faasv1.FunctionIngress) cmv1alpha1.
 			},
 		},
 	}
+
+	return cert
 }
