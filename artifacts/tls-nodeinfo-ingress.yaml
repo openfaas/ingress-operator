@@ -6,7 +6,9 @@ metadata:
 spec:
   domain: "nodeinfo-tls.myfaas.club"
   function: "nodeinfo"
-  tls: true
-  issuerRef: "letsencrypt-staging"
-  issuerType: "Issuer"
   ingressType: "nginx"
+  tls:
+    enabled: true
+    issuerRef:
+      name: "letsencrypt-staging"
+      kind: "Issuer"

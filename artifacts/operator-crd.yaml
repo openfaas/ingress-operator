@@ -28,11 +28,19 @@ spec:
               pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
             domain:
               type: string
-            tls:
-              type: boolean
-            issuerRef:
-              type: string
-            issuerType:
-              type: string
             ingressType:
               type: string
+            tls:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                issuerRef:
+                  type: object
+                  required: ['kind', 'name']
+                  properties:
+                    name:
+                      type: string
+                    kind:
+                      type: string
+    

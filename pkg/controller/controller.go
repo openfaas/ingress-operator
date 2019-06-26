@@ -268,33 +268,36 @@ func (c *Controller) syncHandler(key string) error {
 	glog.Infof("FunctionIngress name: %v", fniName)
 
 	ingresses := c.ingressLister.Ingresses(namespace)
-	ingress, gotErr := ingresses.Get(function.Name)
-	createIngress := errors.IsNotFound(gotErr)
+	ingress, getIngressErr := ingresses.Get(function.Name)
+	createIngress := errors.IsNotFound(getIngressErr)
+	if !createIngress && ingress == nil {
+		glog.Errorf("cannot get ingress: %s in %s, error: %s", function.Name, namespace, getIngressErr.Error())
+	}
 
 	var createCert bool
 
-	if function.Spec.TLS {
+	glog.Info("function.Spec.UseTLS()", function.Spec.UseTLS())
+
+	if function.Spec.UseTLS() {
 		certName := function.ObjectMeta.Name + "-certificate"
-		_, err := c.cmclientset.Certificates(function.ObjectMeta.Namespace).Get(certName, v1.GetOptions{})
-		notFound := errors.IsNotFound(gotErr)
-		if err != nil && !notFound {
-			glog.Errorf("cannot get cert: %s in %s, error: %s", certName, namespace, err.Error())
+		_, getCertErr := c.cmclientset.Certificates(function.ObjectMeta.Namespace).Get(certName, v1.GetOptions{})
+		notFound := errors.IsNotFound(getCertErr)
+		if getCertErr != nil && !notFound {
+			glog.Errorf("cannot get cert: %s in %s, error: %s", certName, namespace, getCertErr.Error())
 		}
 		createCert = true
 	}
 
+	glog.Info("createCert", createCert)
+
 	if createCert {
 		glog.Infof("Need to create certifcate for FunctionIngress: %v", fniName)
 
-		ingressClass := function.Spec.IngressType
-		if len(ingressClass) == 0 {
-			ingressClass = "nginx"
-		}
-
-		if function.Spec.TLS {
+		if function.Spec.UseTLS() {
+			ingressClass := getClass(function.Spec.IngressType)
 			cert := makeCert(ingressClass, function)
 
-			glog.Infof("Asked for TLS cert for %s via %s\n", function.Spec.Domain, function.Spec.IssuerRef)
+			glog.Infof("Asked for TLS cert for %s via %s\n", function.Spec.Domain, function.Spec.TLS.IssuerRef)
 
 			certs := c.cmclientset.Certificates(function.ObjectMeta.Namespace)
 
@@ -302,9 +305,10 @@ func (c *Controller) syncHandler(key string) error {
 			if createErr != nil {
 				glog.Errorf("cannot create cert for %s, %s", function.ObjectMeta.Name, createErr.Error())
 			}
-
 		}
 	}
+
+	glog.Info("createIngress", createIngress)
 
 	if createIngress {
 		rules := makeRules(function.Spec.Domain)
@@ -477,7 +481,7 @@ func makeRules(domain string) []v1beta1.IngressRule {
 }
 
 func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
-	if !function.Spec.TLS {
+	if !function.Spec.UseTLS() {
 		return []v1beta1.IngressTLS{}
 	}
 	return []v1beta1.IngressTLS{
@@ -520,8 +524,8 @@ func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 		break
 	}
 
-	if function.Spec.TLS {
-		annotations["certmanager.k8s.io/issuer"] = function.Spec.IssuerRef
+	if function.Spec.UseTLS() {
+		annotations["certmanager.k8s.io/issuer"] = function.Spec.TLS.IssuerRef.Kind
 		annotations["certmanager.k8s.io/acme-challenge-type"] = "http01"
 	}
 
@@ -551,8 +555,8 @@ func makeCert(ingressClass string, function *faasv1.FunctionIngress) cmv1alpha1.
 		Spec: cmv1alpha1.CertificateSpec{
 			SecretName: fniName + "-certificate-secret",
 			IssuerRef: cmv1alpha1.ObjectReference{
-				Kind: "Issuer",
-				Name: function.Spec.IssuerRef,
+				Kind: function.Spec.TLS.IssuerRef.Kind,
+				Name: function.Spec.TLS.IssuerRef.Name,
 			},
 			ACME: &cmv1alpha1.ACMECertificateConfig{
 				Config: []cmv1alpha1.DomainSolverConfig{
