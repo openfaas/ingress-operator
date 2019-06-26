@@ -274,7 +274,7 @@ func (c *Controller) syncHandler(key string) error {
 	var createCert bool
 
 	if function.Spec.TLS {
-		certName := function.ObjectMeta.Name + "certificate"
+		certName := function.ObjectMeta.Name + "-certificate"
 		_, err := c.cmclientset.Certificates(function.ObjectMeta.Namespace).Get(certName, v1.GetOptions{})
 		notFound := errors.IsNotFound(gotErr)
 		if err != nil && !notFound {
