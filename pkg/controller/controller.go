@@ -276,7 +276,7 @@ func (c *Controller) syncHandler(key string) error {
 
 	var createCert bool
 
-	glog.Info("function.Spec.UseTLS()", function.Spec.UseTLS())
+	glog.Info("function.Spec.UseTLS() ", function.Spec.UseTLS())
 
 	if function.Spec.UseTLS() {
 		certName := function.ObjectMeta.Name + "-certificate"
@@ -288,7 +288,7 @@ func (c *Controller) syncHandler(key string) error {
 		createCert = true
 	}
 
-	glog.Info("createCert", createCert)
+	glog.Info("createCert ", createCert)
 
 	if createCert {
 		glog.Infof("Need to create certifcate for FunctionIngress: %v", fniName)
@@ -308,7 +308,7 @@ func (c *Controller) syncHandler(key string) error {
 		}
 	}
 
-	glog.Info("createIngress", createIngress)
+	glog.Info("createIngress ", createIngress)
 
 	if createIngress {
 		rules := makeRules(function.Spec.Domain)
@@ -525,7 +525,7 @@ func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 	}
 
 	if function.Spec.UseTLS() {
-		annotations["certmanager.k8s.io/issuer"] = function.Spec.TLS.IssuerRef.Kind
+		annotations["certmanager.k8s.io/issuer"] = function.Spec.TLS.IssuerRef.Name
 		annotations["certmanager.k8s.io/acme-challenge-type"] = "http01"
 	}
 

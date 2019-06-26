@@ -37,6 +37,9 @@ spec:
                   type: boolean
                 issuerRef:
                   type: object
+                  anyOf:
+                    - type: string
+                    - type: object
                   required: ['kind', 'name']
                   properties:
                     name:
