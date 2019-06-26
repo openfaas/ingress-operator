@@ -21,11 +21,18 @@ spec:
       properties:
         spec:
           required:
-            - name
             - domain
           properties:
             name:
               type: string
               pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
             domain:
+              type: string
+            tls:
+              type: boolean
+            issuerRef:
+              type: string
+            issuerType:
+              type: string
+            ingressType:
               type: string

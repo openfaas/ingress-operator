@@ -108,6 +108,14 @@
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:3af6be4fee7c08f81f13d36f04ffb63ad4b6b5aaba12cce96095c7c2863d4912"
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ed099d42384823742bba0bf9a72b53b55c9e2e38"
+  version = "v1.7.2"
+
+[[projects]]
   branch = "master"
   digest = "1:86c1210529e69d69860f2bb3ee9ccce0b595aa3f9165e7dd1388e5c612915888"
   name = "github.com/gregjones/httpcache"
@@ -138,6 +146,19 @@
   version = "v0.3.5"
 
 [[projects]]
+  digest = "1:155459cc0506b22b9ac7f06530cc126ea599003259f4df5dabb1e3bb4cb91ea7"
+  name = "github.com/jetstack/cert-manager"
+  packages = [
+    "pkg/apis/certmanager",
+    "pkg/apis/certmanager/v1alpha1",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/certmanager/v1alpha1",
+  ]
+  pruneopts = "UT"
+  revision = "55fadf104b94cbf9836364f8b824ce71cf0f522e"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:bb3cc4c1b21ea18cfa4e3e47440fc74d316ab25b0cf42927e8c1274917bd9891"
   name = "github.com/json-iterator/go"
   packages = ["."]
@@ -159,6 +180,41 @@
   pruneopts = "UT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:3f69624cb4ae8ab815a672f7d169d64786ee027a9d42eefab3c9d4e9debe0750"
+  name = "github.com/openfaas/faas"
+  packages = ["gateway/requests"]
+  pruneopts = "UT"
+  revision = "a65df4795bc66147c41161c48bfd4c72f60c7434"
+  version = "0.9.14"
+
+[[projects]]
+  digest = "1:c4c44e37b4e20c1c01e51f1da377e5ad7378fcda1e4327a51b14668db8db6833"
+  name = "github.com/openfaas/faas-netes"
+  packages = [
+    "handlers",
+    "k8s",
+    "types",
+    "version",
+  ]
+  pruneopts = "UT"
+  revision = "ded145c5f6edad96785465d5910a0f40b9f6e1e7"
+  version = "0.7.8"
+
+[[projects]]
+  digest = "1:ff2d17f420f265ff6ad98e0d847687a3b6c171d87893d47a208e183092723208"
+  name = "github.com/openfaas/faas-provider"
+  packages = [
+    ".",
+    "auth",
+    "httputil",
+    "logs",
+    "types",
+  ]
+  pruneopts = "UT"
+  revision = "0ca8ae603fee9736e011b81fbf02777d89a4ea85"
+  version = "0.9.2"
 
 [[projects]]
   branch = "master"
@@ -359,6 +415,17 @@
   revision = "173ce66c1e39d1d0f56e0b3347ff2988068aecd0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:009c97a2e9e26b34d39af301ed95c7030a2e5e7aa7c268e4be1a32a1e6379820"
+  name = "k8s.io/apiextensions-apiserver"
+  packages = [
+    "pkg/apis/apiextensions",
+    "pkg/apis/apiextensions/v1beta1",
+  ]
+  pruneopts = "UT"
+  revision = "c845f3f2ba9ae54095b8269fc7f5064a2aea3d55"
+
+[[projects]]
   branch = "release-1.12"
   digest = "1:9982bda93ef8f7c7bb009b7aff84c919142a0cf418dabc107fe40c8b31f3c8f1"
   name = "k8s.io/apimachinery"
@@ -410,7 +477,7 @@
   revision = "49ce2735e5074ffc3f8190c8406cf51a96302dad"
 
 [[projects]]
-  digest = "1:ce39e9913b2c89cb74ee6b60e4ee208b1d2f66223ad4d7aa51d4ba56f4465e09"
+  digest = "1:7290af3469ebbfcb4e92f783f28f8e927c34fbaa9038bf8b4a42becfbd6da12e"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -460,38 +527,70 @@
     "informers/storage/v1alpha1",
     "informers/storage/v1beta1",
     "kubernetes",
+    "kubernetes/fake",
     "kubernetes/scheme",
     "kubernetes/typed/admissionregistration/v1alpha1",
+    "kubernetes/typed/admissionregistration/v1alpha1/fake",
     "kubernetes/typed/admissionregistration/v1beta1",
+    "kubernetes/typed/admissionregistration/v1beta1/fake",
     "kubernetes/typed/apps/v1",
+    "kubernetes/typed/apps/v1/fake",
     "kubernetes/typed/apps/v1beta1",
+    "kubernetes/typed/apps/v1beta1/fake",
     "kubernetes/typed/apps/v1beta2",
+    "kubernetes/typed/apps/v1beta2/fake",
     "kubernetes/typed/authentication/v1",
+    "kubernetes/typed/authentication/v1/fake",
     "kubernetes/typed/authentication/v1beta1",
+    "kubernetes/typed/authentication/v1beta1/fake",
     "kubernetes/typed/authorization/v1",
+    "kubernetes/typed/authorization/v1/fake",
     "kubernetes/typed/authorization/v1beta1",
+    "kubernetes/typed/authorization/v1beta1/fake",
     "kubernetes/typed/autoscaling/v1",
+    "kubernetes/typed/autoscaling/v1/fake",
     "kubernetes/typed/autoscaling/v2beta1",
+    "kubernetes/typed/autoscaling/v2beta1/fake",
     "kubernetes/typed/autoscaling/v2beta2",
+    "kubernetes/typed/autoscaling/v2beta2/fake",
     "kubernetes/typed/batch/v1",
+    "kubernetes/typed/batch/v1/fake",
     "kubernetes/typed/batch/v1beta1",
+    "kubernetes/typed/batch/v1beta1/fake",
     "kubernetes/typed/batch/v2alpha1",
+    "kubernetes/typed/batch/v2alpha1/fake",
     "kubernetes/typed/certificates/v1beta1",
+    "kubernetes/typed/certificates/v1beta1/fake",
     "kubernetes/typed/coordination/v1beta1",
+    "kubernetes/typed/coordination/v1beta1/fake",
     "kubernetes/typed/core/v1",
+    "kubernetes/typed/core/v1/fake",
     "kubernetes/typed/events/v1beta1",
+    "kubernetes/typed/events/v1beta1/fake",
     "kubernetes/typed/extensions/v1beta1",
+    "kubernetes/typed/extensions/v1beta1/fake",
     "kubernetes/typed/networking/v1",
+    "kubernetes/typed/networking/v1/fake",
     "kubernetes/typed/policy/v1beta1",
+    "kubernetes/typed/policy/v1beta1/fake",
     "kubernetes/typed/rbac/v1",
+    "kubernetes/typed/rbac/v1/fake",
     "kubernetes/typed/rbac/v1alpha1",
+    "kubernetes/typed/rbac/v1alpha1/fake",
     "kubernetes/typed/rbac/v1beta1",
+    "kubernetes/typed/rbac/v1beta1/fake",
     "kubernetes/typed/scheduling/v1alpha1",
+    "kubernetes/typed/scheduling/v1alpha1/fake",
     "kubernetes/typed/scheduling/v1beta1",
+    "kubernetes/typed/scheduling/v1beta1/fake",
     "kubernetes/typed/settings/v1alpha1",
+    "kubernetes/typed/settings/v1alpha1/fake",
     "kubernetes/typed/storage/v1",
+    "kubernetes/typed/storage/v1/fake",
     "kubernetes/typed/storage/v1alpha1",
+    "kubernetes/typed/storage/v1alpha1/fake",
     "kubernetes/typed/storage/v1beta1",
+    "kubernetes/typed/storage/v1beta1/fake",
     "listers/admissionregistration/v1alpha1",
     "listers/admissionregistration/v1beta1",
     "listers/apps/v1",
@@ -602,16 +701,36 @@
   pruneopts = "UT"
   revision = "d83b052f768a50a309c692a9c271da3f3276ff88"
 
+[[projects]]
+  branch = "master"
+  digest = "1:8b5d43a2ffe1c0df5e9d7f635227f179341964dd7d0b72fc12f857186a47c224"
+  name = "k8s.io/utils"
+  packages = ["pointer"]
+  pruneopts = "UT"
+  revision = "c55fbcfc754a5b2ec2fbae8fb9dcac36bdba6a12"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/google/go-cmp/cmp",
+    "github.com/gorilla/mux",
+    "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1",
+    "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha1",
+    "github.com/openfaas/faas-netes/handlers",
+    "github.com/openfaas/faas-netes/k8s",
+    "github.com/openfaas/faas-netes/types",
+    "github.com/openfaas/faas-netes/version",
+    "github.com/openfaas/faas-provider",
+    "github.com/openfaas/faas-provider/logs",
+    "github.com/openfaas/faas-provider/types",
+    "github.com/openfaas/faas/gateway/requests",
     "github.com/pkg/errors",
     "k8s.io/api/apps/v1beta2",
     "k8s.io/api/core/v1",
     "k8s.io/api/extensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
@@ -625,7 +744,9 @@
     "k8s.io/client-go/discovery",
     "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/informers",
+    "k8s.io/client-go/informers/internalinterfaces",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/fake",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/extensions/v1beta1",

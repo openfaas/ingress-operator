@@ -4,6 +4,7 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  name: nodeinfo
-  domain: nodeinfo.myfaas.club
-  function: nodeinfo
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  tls: false
+  issuer: "letsencrypt-staging"

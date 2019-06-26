@@ -18,3 +18,5 @@ faas-o6s
 
 ingress-operator
 config
+password.txt
+faas-netes/**
