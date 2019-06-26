@@ -286,7 +286,11 @@ func (c *Controller) syncHandler(key string) error {
 	if createCert {
 		glog.Infof("Need to create certifcate for FunctionIngress: %v", fniName)
 
-		ingressClass := "nginx"
+		ingressClass := function.Spec.IngressType
+		if len(ingressClass) == 0 {
+			ingressClass = "nginx"
+		}
+
 		if function.Spec.TLS {
 			cert := makeCert(ingressClass, function)
 
@@ -486,12 +490,33 @@ func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
 	}
 }
 
+func getClass(ingressType string) string {
+	switch ingressType {
+	case "nginx":
+		return "nginx"
+	default:
+		return ingressType
+	}
+
+	return "nginx"
+}
+
 func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
+	class := getClass(function.Spec.IngressType)
 	specJSON, _ := json.Marshal(function)
 	annotations := map[string]string{
-		"kubernetes.io/ingress.class":                "nginx",
-		"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
-		"com.openfaas.spec":                          string(specJSON),
+		"kubernetes.io/ingress.class": class,
+		"com.openfaas.spec":           string(specJSON),
+	}
+
+	switch class {
+
+	case "nginx":
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+		break
+	case "skipper":
+		annotations["zalando.org/skipper-filter"] = `setPath("/function/` + function.Spec.Function + `")`
+		break
 	}
 
 	if function.Spec.TLS {
