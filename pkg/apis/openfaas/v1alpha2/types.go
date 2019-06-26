@@ -8,7 +8,7 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Function describes an OpenFaaS function
+// FunctionIngress describes an OpenFaaS function
 type FunctionIngress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -16,11 +16,26 @@ type FunctionIngress struct {
 	Spec FunctionIngressSpec `json:"spec"`
 }
 
-// FunctionIngressSpec is the spec for a FunctionIngress resource
+// FunctionIngressSpec is the spec for a FunctionIngress resource. It must
+// be created in the same namespace as the gateway, i.e. openfaas.
 type FunctionIngressSpec struct {
-	Name     string `json:"name"`
-	Domain   string `json:"domain"`
+	// Domain such as www.openfaas.com
+	Domain string `json:"domain"`
+
+	// Function such as "nodeinfo"
 	Function string `json:"function"`
+
+	// Enable TLS via cert-manager
+	TLS bool `json:"tls"`
+
+	// IssuerRef name of ClusterIssuer or Issuer in same namespace as object
+	IssuerRef string `json:"issuerRef"`
+
+	// IssuerType such as ClusterIssuer or Issuer
+	IssuerType string `json:"issuerType"`
+
+	// IngressType such as "nginx"
+	IngressType string `json:"ingressType"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

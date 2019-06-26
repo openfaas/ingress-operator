@@ -29,7 +29,6 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  name: nodeinfo
   domain: nodeinfo.myfaas.club
   function: nodeinfo
   # tls: true # TBD
@@ -52,13 +51,31 @@ This is work-in-progress prototype and only suitable for development and testing
 
 Todo:
 - [x] Create `Ingress` records for HTTP
-- [ ] Create `Ingress` records for HTTPS
-- [ ] Create cert-manager `Certificate` records
+- [x] Create `Ingress` records for HTTPS
+- [x] Create cert-manager `Certificate` records
 - [ ] Add `.travis.yml` for CI
 
 ## Deployment
 
 ### Pre-reqs
+
+There are several pre-reqs for a working installation, but some of these components are installed with OpenFaaS and can also be found in [the docs](https://docs.openfaas.com/).
+
+#### Install: `tiller`
+
+```
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+
+kubectl -n kube-system create sa tiller \
+  && kubectl create clusterrolebinding tiller \
+  --clusterrole cluster-admin \
+  --serviceaccount=kube-system:tiller
+
+## Wait for tiller
+helm init --skip-refresh --upgrade --service-account tiller --wait
+```
+
+#### IngressController: `nginx`
 
 [nginx IngressController](https://github.com/helm/charts/tree/master/stable/nginx-ingress) is recommended. Use a HostPort if testing against a local cluster where `LoadBalancer` is unavailable.
 
@@ -76,6 +93,87 @@ Install nginx with host-port:
 export ADDITIONAL_SET=",controller.hostNetwork=true,controller.daemonset.useHostPort=true,dnsPolicy=ClusterFirstWithHostNet,controller.kind=DaemonSet"
 helm install stable/nginx-ingress --name nginxingress --set rbac.create=true${ADDITIONAL_SET}
 ```
+
+#### OpenFaaS
+
+OpenFaaS is also required:
+
+```
+git clone https://github.com/openfaas/faas-netes
+cd faas-netes
+
+kubectl apply -f namespaces.yml
+# generate a random password
+PASSWORD=$(head -c 12 /dev/urandom | shasum| cut -d' ' -f1)
+
+kubectl -n openfaas create secret generic basic-auth \
+--from-literal=basic-auth-user=admin \
+--from-literal=basic-auth-password="$PASSWORD"
+
+echo $PASSWORD > ../password.txt
+
+kubectl apply -f ./yaml
+
+kubectl port-forward -n openfaas deploy/gateway 31112:8080 &
+echo -n ${PASSWORD} | faas-cli login --username admin --password-stdin -g 127.0.0.1:31112
+faas-cli store deploy nodeinfo -g 127.0.0.1:31112
+```
+
+#### Configure DNS records
+
+##### Find your public IP
+
+Find the LB for Nginx:
+
+```
+kubectl get svc -n default
+```
+
+Or find the NodeIP:
+
+```
+kubectl get node -o wide
+```
+
+##### Create DNS A records
+
+You should now configure your DNS A records:
+
+For example, `nodeinfo` function in the `myfaas.club` domain and IP `178.128.137.209`:
+
+```
+nodeinfo.myfaas.club  178.128.137.209
+```
+
+> Note: with DigitalOcean's CLI you could run: `doctl compute domain create nodeinfo.myfaas.club --ip-address 178.128.137.209`.
+
+##### TLS: Configure cert-manager
+
+If using TLS, then install [cert-manager](https://docs.openfaas.com/reference/ssl/kubernetes-with-cert-manager/#install-cert-manager).
+
+Now create an issuer:
+
+```yaml
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Issuer
+metadata:
+  name: letsencrypt-staging
+  namespace: openfaas
+spec:
+  acme:
+    server: https://acme-staging.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: <your-email-here>
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    http01: {}
+```
+
+Save as `letsencrypt-issuer.yaml` then run `kubectl apply -f letsencrypt-issuer.yaml`.
+
+### Run or deploy the IngressOperator
 
 #### In-cluster:
 
@@ -96,6 +194,8 @@ go build && ./ingress-operator -kubeconfig=./config
 
 ## Create your own `FunctionIngress`
 
+### With TLS
+
 ```yaml
 apiVersion: openfaas.com/v1alpha2
 kind: FunctionIngress
@@ -106,15 +206,50 @@ spec:
   name: nodeinfo
   domain: nodeinfo.myfaas.club
   function: nodeinfo
+  issuerRef: letsencrypt-staging
+  issuerType: Issuer
+  ingressType: nginx
 ```
 
 *nodeinfo.yaml*
+
+### Without TLS
+
+```yaml
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: nodeinfo
+  namespace: openfaas
+spec:
+  name: nodeinfo
+  domain: nodeinfo.myfaas.club
+  function: nodeinfo
+  ingressType: nginx
+```
+
+*nodeinfo.yaml*
+
+### Apply
 
 ```sh
 kubectl apply -f nodeinfo.yaml
 ```
 
-Now configure DNS for `nodeinfo.myfaas.club` or edit `/etc/hosts` and point to your `IngressController`'s IP or `LoadBalancer`.
+### Test:
+
+```
+# Find the ingress record
+kubectl get ingress -n openfaas
+
+# Find the cert record
+kubectl get cert -n openfaas
+
+# Find the FunctionIngress
+kubectl get FunctionIngress -n openfaas
+```
+
+Remember to configure DNS for `nodeinfo.myfaas.club` or edit `/etc/hosts` and point to your `IngressController`'s IP or `LoadBalancer`.
 
 ## Contributing
 

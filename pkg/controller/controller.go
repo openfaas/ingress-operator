@@ -9,6 +9,8 @@ import (
 	pkgerrors "github.com/pkg/errors"
 
 	"github.com/google/go-cmp/cmp"
+	cmv1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	cmclientset "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha1"
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
 	faasscheme "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/scheme"
@@ -28,7 +30,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	extensionsv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
-
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -56,8 +57,12 @@ const (
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
+
 	// faasclientset is a clientset for our own API group
 	faasclientset clientset.Interface
+
+	// cmclientset is a clientset for cert-manager
+	cmclientset *cmclientset.CertmanagerV1alpha1Client
 
 	functionsLister listers.FunctionIngressLister
 
@@ -90,6 +95,7 @@ func checkCustomResourceType(obj interface{}) (faasv1.FunctionIngress, bool) {
 func NewController(
 	kubeclientset kubernetes.Interface,
 	faasclientset clientset.Interface,
+	cmClient *cmclientset.CertmanagerV1alpha1Client,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	functionIngressFactory informers.SharedInformerFactory) *Controller {
 
@@ -111,6 +117,7 @@ func NewController(
 	controller := &Controller{
 		kubeclientset:   kubeclientset,
 		faasclientset:   faasclientset,
+		cmclientset:     cmClient,
 		functionsLister: functionIngress.Lister(),
 		functionsSynced: functionIngress.Informer().HasSynced,
 		ingressLister:   ingressLister,
@@ -256,37 +263,72 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
-	deploymentName := function.Spec.Name
-	glog.Infof("FunctionIngress name: %v", deploymentName)
+	fniName := function.ObjectMeta.Name
+	glog.Infof("FunctionIngress name: %v", fniName)
 
 	ingresses := c.ingressLister.Ingresses(namespace)
 	ingress, gotErr := ingresses.Get(function.Name)
 	if errors.IsNotFound(gotErr) {
-		glog.Infof("Need to create FunctionIngress: %v", deploymentName)
+		glog.Infof("Need to create FunctionIngress: %v", fniName)
+
+		ingressClass := "nginx"
+		if function.Spec.TLS {
+			cert := cmv1alpha1.Certificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            fniName + "-certificate",
+					Namespace:       function.ObjectMeta.Namespace,
+					OwnerReferences: makeOwnerRef(function),
+				},
+				Spec: cmv1alpha1.CertificateSpec{
+					SecretName: fniName + "-certificate-secret",
+					IssuerRef: cmv1alpha1.ObjectReference{
+						Kind: "Issuer",
+						Name: function.Spec.IssuerRef,
+					},
+					ACME: &cmv1alpha1.ACMECertificateConfig{
+						Config: []cmv1alpha1.DomainSolverConfig{
+							cmv1alpha1.DomainSolverConfig{
+								Domains: []string{
+									function.Spec.Domain,
+								},
+								SolverConfig: cmv1alpha1.SolverConfig{
+									HTTP01: &cmv1alpha1.HTTP01SolverConfig{
+										IngressClass: &ingressClass,
+									},
+								},
+							},
+						},
+					},
+					DNSNames: []string{
+						function.Spec.Domain,
+					},
+				},
+			}
+
+			glog.Infof("Asked for TLS cert for %s via %s\n", function.Spec.Domain, function.Spec.IssuerRef)
+
+			certs := c.cmclientset.Certificates(function.ObjectMeta.Namespace)
+
+			_, createErr := certs.Create(&cert)
+			if createErr != nil {
+				glog.Errorf("cannot create cert for %s, %s", function.ObjectMeta.Name, createErr.Error())
+			}
+
+		}
 
 		rules := makeRules(function.Spec.Domain)
-
-		specJSON, _ := json.Marshal(function)
+		tls := makeTLS(function)
 
 		newIngress := v1beta1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-				Annotations: map[string]string{
-					"kubernetes.io/ingress.class":                "nginx",
-					"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
-					"com.openfaas.spec":                          string(specJSON),
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					*metav1.NewControllerRef(function, schema.GroupVersionKind{
-						Group:   faasv1.SchemeGroupVersion.Group,
-						Version: faasv1.SchemeGroupVersion.Version,
-						Kind:    faasIngressKind,
-					}),
-				},
+				Name:            name,
+				Namespace:       namespace,
+				Annotations:     makeAnnotations(function),
+				OwnerReferences: makeOwnerRef(function),
 			},
 			Spec: v1beta1.IngressSpec{
 				Rules: rules,
+				TLS:   tls,
 			},
 		}
 
@@ -310,9 +352,9 @@ func (c *Controller) syncHandler(key string) error {
 
 	// Update the Deployment resource if the Function definition differs
 	if ingressNeedsUpdate(&old, function) {
-		glog.Infof("Need to update FunctionIngress: %v", deploymentName)
+		glog.Infof("Need to update FunctionIngress: %v", fniName)
 
-		if old.Spec.Name != function.Spec.Name {
+		if old.ObjectMeta.Name != function.ObjectMeta.Name {
 			return fmt.Errorf("cannot rename object")
 		}
 
@@ -320,12 +362,13 @@ func (c *Controller) syncHandler(key string) error {
 
 		rules := makeRules(function.Spec.Domain)
 
-		specJSON, _ := json.Marshal(function)
+		annotations := makeAnnotations(function)
+		for k, v := range annotations {
+			updated.Annotations[k] = v
+		}
 
 		updated.Spec.Rules = rules
-
-		updated.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
-		updated.Annotations["com.openfaas.spec"] = string(specJSON)
+		updated.Spec.TLS = makeTLS(function)
 
 		_, updateErr := c.kubeclientset.Extensions().Ingresses(namespace).Update(updated)
 		if updateErr != nil {
@@ -440,5 +483,45 @@ func makeRules(domain string) []v1beta1.IngressRule {
 			},
 		},
 	}
+}
 
+func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
+	if !function.Spec.TLS {
+		return []v1beta1.IngressTLS{}
+	}
+	return []v1beta1.IngressTLS{
+		v1beta1.IngressTLS{
+			SecretName: function.ObjectMeta.Name + "-secret",
+			Hosts: []string{
+				function.Spec.Domain,
+			},
+		},
+	}
+}
+
+func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
+	specJSON, _ := json.Marshal(function)
+	annotations := map[string]string{
+		"kubernetes.io/ingress.class":                "nginx",
+		"nginx.ingress.kubernetes.io/rewrite-target": "/function/" + function.Spec.Function + "/$1",
+		"com.openfaas.spec":                          string(specJSON),
+	}
+
+	if function.Spec.TLS {
+		annotations["certmanager.k8s.io/issuer"] = function.Spec.IssuerRef
+		annotations["certmanager.k8s.io/acme-challenge-type"] = "http01"
+	}
+
+	return annotations
+}
+
+func makeOwnerRef(function *faasv1.FunctionIngress) []metav1.OwnerReference {
+	ref := []metav1.OwnerReference{
+		*metav1.NewControllerRef(function, schema.GroupVersionKind{
+			Group:   faasv1.SchemeGroupVersion.Group,
+			Version: faasv1.SchemeGroupVersion.Version,
+			Kind:    faasIngressKind,
+		}),
+	}
+	return ref
 }
