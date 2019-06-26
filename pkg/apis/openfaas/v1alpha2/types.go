@@ -16,11 +16,6 @@ type FunctionIngress struct {
 	Spec FunctionIngressSpec `json:"spec"`
 }
 
-// UseTLS if TLS is enabled
-func (f *FunctionIngressSpec) UseTLS() bool {
-	return f.TLS != nil && f.TLS.Enabled
-}
-
 // FunctionIngressSpec is the spec for a FunctionIngress resource. It must
 // be created in the same namespace as the gateway, i.e. openfaas.
 type FunctionIngressSpec struct {
@@ -31,17 +26,22 @@ type FunctionIngressSpec struct {
 	Function string `json:"function"`
 
 	// IngressType such as "nginx"
-	IngressType string `json:"ingressType"`
+	IngressType string `json:"ingressType,omitempty"`
 
 	// Enable TLS via cert-manager
-	TLS *FunctionIngressTLS `json:"tls"`
+	TLS *FunctionIngressTLS `json:"tls,omitempty"`
 }
 
 // FunctionIngressTLS TLS options
 type FunctionIngressTLS struct {
-	Enabled bool `json:"bool"`
+	Enabled bool `json:"enabled"`
 
 	IssuerRef ObjectReference `json:"issuerRef"`
+}
+
+// UseTLS if TLS is enabled
+func (f *FunctionIngressSpec) UseTLS() bool {
+	return f.TLS != nil && f.TLS.Enabled
 }
 
 // ObjectReference is a reference to an object with a given name and kind.
