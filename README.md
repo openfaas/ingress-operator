@@ -22,6 +22,8 @@ Users started to create `Ingress` records pointing at the gateway for each publi
 
 This is an Operator / controller to build Kubernetes `Ingress` and JetStack `Certificate` objects for functions.
 
+The following example would expose the `nodeinfo` function from the store as a URL: `nodeinfo.myfaas.club`.
+
 ```yaml
 apiVersion: openfaas.com/v1alpha2
 kind: FunctionIngress
@@ -47,7 +49,7 @@ Exploring the schema:
 
 * `tls` whether to provision a TLS certificate using JetStack's [cert-manager](https://github.com/jetstack/cert-manager)
 
-* `issuer` which issuer to use, this may be a staging or production issuer.
+* `issuerRef` which issuer to use, this may be a staging or production issuer.
 
 ## Status
 
