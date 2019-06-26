@@ -492,6 +492,7 @@ func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
 
 func getClass(ingressType string) string {
 	switch ingressType {
+	case "":
 	case "nginx":
 		return "nginx"
 	default:
