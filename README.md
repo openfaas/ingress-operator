@@ -203,7 +203,6 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  name: nodeinfo
   domain: nodeinfo.myfaas.club
   function: nodeinfo
   issuerRef: letsencrypt-staging
@@ -222,7 +221,6 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  name: nodeinfo
   domain: nodeinfo.myfaas.club
   function: nodeinfo
   ingressType: nginx
