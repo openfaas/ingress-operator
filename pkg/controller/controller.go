@@ -273,37 +273,7 @@ func (c *Controller) syncHandler(key string) error {
 
 		ingressClass := "nginx"
 		if function.Spec.TLS {
-			cert := cmv1alpha1.Certificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            fniName + "-certificate",
-					Namespace:       function.ObjectMeta.Namespace,
-					OwnerReferences: makeOwnerRef(function),
-				},
-				Spec: cmv1alpha1.CertificateSpec{
-					SecretName: fniName + "-certificate-secret",
-					IssuerRef: cmv1alpha1.ObjectReference{
-						Kind: "Issuer",
-						Name: function.Spec.IssuerRef,
-					},
-					ACME: &cmv1alpha1.ACMECertificateConfig{
-						Config: []cmv1alpha1.DomainSolverConfig{
-							cmv1alpha1.DomainSolverConfig{
-								Domains: []string{
-									function.Spec.Domain,
-								},
-								SolverConfig: cmv1alpha1.SolverConfig{
-									HTTP01: &cmv1alpha1.HTTP01SolverConfig{
-										IngressClass: &ingressClass,
-									},
-								},
-							},
-						},
-					},
-					DNSNames: []string{
-						function.Spec.Domain,
-					},
-				},
-			}
+			cert := makeCert(ingressClass, function)
 
 			glog.Infof("Asked for TLS cert for %s via %s\n", function.Spec.Domain, function.Spec.IssuerRef)
 
@@ -524,4 +494,40 @@ func makeOwnerRef(function *faasv1.FunctionIngress) []metav1.OwnerReference {
 		}),
 	}
 	return ref
+}
+
+func makeCert(ingressClass string, function *faasv1.FunctionIngress) cmv1alpha1.Certificate {
+	fniName := function.ObjectMeta.Name
+
+	cert := cmv1alpha1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            fniName + "-certificate",
+			Namespace:       function.ObjectMeta.Namespace,
+			OwnerReferences: makeOwnerRef(function),
+		},
+		Spec: cmv1alpha1.CertificateSpec{
+			SecretName: fniName + "-certificate-secret",
+			IssuerRef: cmv1alpha1.ObjectReference{
+				Kind: "Issuer",
+				Name: function.Spec.IssuerRef,
+			},
+			ACME: &cmv1alpha1.ACMECertificateConfig{
+				Config: []cmv1alpha1.DomainSolverConfig{
+					cmv1alpha1.DomainSolverConfig{
+						Domains: []string{
+							function.Spec.Domain,
+						},
+						SolverConfig: cmv1alpha1.SolverConfig{
+							HTTP01: &cmv1alpha1.HTTP01SolverConfig{
+								IngressClass: &ingressClass,
+							},
+						},
+					},
+				},
+			},
+			DNSNames: []string{
+				function.Spec.Domain,
+			},
+		},
+	}
 }
