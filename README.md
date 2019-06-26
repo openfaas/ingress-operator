@@ -29,10 +29,14 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  domain: nodeinfo.myfaas.club
-  function: nodeinfo
-  # tls: true # TBD
-  # issuer: letsencrypt-prod #TDB
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+  # tls:
+  #   enabled: true
+  #   issuerRef:
+  #     name: "letsencrypt-staging"
+  #     kind: "Issuer"
 ```
 
 Exploring the schema:
@@ -200,14 +204,17 @@ go build && ./ingress-operator -kubeconfig=./config
 apiVersion: openfaas.com/v1alpha2
 kind: FunctionIngress
 metadata:
-  name: nodeinfo
+  name: nodeinfo-tls
   namespace: openfaas
 spec:
-  domain: nodeinfo.myfaas.club
-  function: nodeinfo
-  issuerRef: letsencrypt-staging
-  issuerType: Issuer
-  ingressType: nginx
+  domain: "nodeinfo-tls.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+  tls:
+    enabled: true
+    issuerRef:
+      name: "letsencrypt-staging"
+      kind: "Issuer"
 ```
 
 *nodeinfo.yaml*
@@ -221,9 +228,9 @@ metadata:
   name: nodeinfo
   namespace: openfaas
 spec:
-  domain: nodeinfo.myfaas.club
-  function: nodeinfo
-  ingressType: nginx
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
 ```
 
 *nodeinfo.yaml*
