@@ -6,5 +6,4 @@ metadata:
 spec:
   domain: "nodeinfo.myfaas.club"
   function: "nodeinfo"
-  tls: false
-  issuer: "letsencrypt-staging"
+  ingressType: "nginx"
