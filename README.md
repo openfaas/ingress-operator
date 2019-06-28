@@ -16,7 +16,9 @@ The gateway has a number of rules including:
 
 Users started to create `Ingress` records pointing at the gateway for each public endpoint they wanted to host with a specific website address. This Operator automates that.
 
-> See also: [Proposal: define custom hostname for functions #1082](https://github.com/openfaas/faas/issues/1082)
+This project addresses the following Proposal for Kubernetes: [Proposal: define custom hostname for functions #1082](https://github.com/openfaas/faas/issues/1082)
+
+> Looking for a tutorial? See the [OpenFaaS documentation](https://docs.openfaas.com/reference/authentication/)
 
 ## Schema
 
