@@ -61,6 +61,10 @@ Todo:
 - [x] Create `Ingress` records for HTTP
 - [x] Create `Ingress` records for HTTPS
 - [x] Create cert-manager `Certificate` records
+- [x] Support Nginx
+- [x] Support Zoolando's Skipper
+- [x] Support Traefik
+- [x] Support armhf / Raspberry Pi
 - [ ] Add `.travis.yml` for CI
 
 ## Deployment

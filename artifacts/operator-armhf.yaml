@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: ingress-operator
+  namespace: openfaas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingress-operator
+  template:
+    metadata:
+      labels:
+        app: ingress-operator
+      annotations:
+        prometheus.io.scrape: 'true'
+    spec:
+      serviceAccountName: ingress-operator
+      containers:
+      - name: operator
+        image: openfaas/ingress-operator:0.2.0-armhf
+        imagePullPolicy: Always
+        command:
+          - ./ingress-operator
+          - -logtostderr
+          - -v=2
+        env:
+        - name: function_namespace
+          value: openfaas
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            memory: 25Mi

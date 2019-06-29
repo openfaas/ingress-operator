@@ -311,7 +311,7 @@ func (c *Controller) syncHandler(key string) error {
 	glog.Info("createIngress ", createIngress)
 
 	if createIngress {
-		rules := makeRules(function.Spec.Domain)
+		rules := makeRules(function)
 		tls := makeTLS(function)
 
 		newIngress := v1beta1.Ingress{
@@ -355,7 +355,7 @@ func (c *Controller) syncHandler(key string) error {
 
 		updated := ingress.DeepCopy()
 
-		rules := makeRules(function.Spec.Domain)
+		rules := makeRules(function)
 
 		annotations := makeAnnotations(function)
 		for k, v := range annotations {
@@ -457,15 +457,20 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 }
 
-func makeRules(domain string) []v1beta1.IngressRule {
+func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
+	path := "/(.*)"
+	if getClass(fni.Spec.IngressType) == "traefik" {
+		path = "/"
+	}
+
 	return []v1beta1.IngressRule{
 		v1beta1.IngressRule{
-			Host: domain,
+			Host: fni.Spec.Domain,
 			IngressRuleValue: v1beta1.IngressRuleValue{
 				HTTP: &v1beta1.HTTPIngressRuleValue{
 					Paths: []v1beta1.HTTPIngressPath{
 						v1beta1.HTTPIngressPath{
-							Path: "/(.*)",
+							Path: path,
 							Backend: v1beta1.IngressBackend{
 								ServiceName: "gateway",
 								ServicePort: intstr.IntOrString{
@@ -521,6 +526,12 @@ func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 		break
 	case "skipper":
 		annotations["zalando.org/skipper-filter"] = `setPath("/function/` + function.Spec.Function + `")`
+		break
+
+	case "traefik":
+		annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+		annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
+
 		break
 	}
 
