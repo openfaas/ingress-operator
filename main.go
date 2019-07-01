@@ -69,18 +69,18 @@ func main() {
 		glog.Fatalf("Error building cert-manager clientset: %s", err.Error())
 	}
 
-	functionNamespace := "openfaas"
-	if namespace, exists := os.LookupEnv("function_namespace"); exists {
-		functionNamespace = namespace
+	ingressNamespace := "openfaas"
+	if namespace, exists := os.LookupEnv("openfaas_gateway_namespace"); exists {
+		ingressNamespace = namespace
 	}
 
 	defaultResync := time.Second * 30
 
-	kubeInformerOpt := kubeinformers.WithNamespace(functionNamespace)
+	kubeInformerOpt := kubeinformers.WithNamespace(ingressNamespace)
 	kubeInformerFactory := kubeinformers.
 		NewSharedInformerFactoryWithOptions(kubeClient, defaultResync, kubeInformerOpt)
 
-	faasInformerOpt := informers.WithNamespace(functionNamespace)
+	faasInformerOpt := informers.WithNamespace(ingressNamespace)
 	faasInformerFactory := informers.
 		NewSharedInformerFactoryWithOptions(faasClient, defaultResync, faasInformerOpt)
 

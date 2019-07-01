@@ -268,6 +268,12 @@ Remember to configure DNS for `nodeinfo.myfaas.club` or edit `/etc/hosts` and po
 
 This project follows the [OpenFaaS contributing guide](./CONTRIBUTING.md)
 
+## Configuration via Environment Variable
+
+| Option              | Usage                                                                                           |
+|---------------------|-------------------------------------------------------------------------------------------------|
+| `openfaas_gateway_namespace`         | Namespace for the OpenFaaS gateway, default: `openfaas`                        |
+
 ## LICENSE
 
 MIT
