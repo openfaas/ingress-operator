@@ -484,10 +484,12 @@ func getIssuerKind(issuerType string) string {
 func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 	class := getClass(function.Spec.IngressType)
 	specJSON, _ := json.Marshal(function)
-	annotations := map[string]string{
-		"kubernetes.io/ingress.class": class,
-		"com.openfaas.spec":           string(specJSON),
+	annotations := make(map[string]string)
+	for k, v := range function.ObjectMeta.Annotations {
+		annotations[k] = v
 	}
+	annotations["kubernetes.io/ingress.class"] = class
+	annotations["com.openfaas.spec"] = string(specJSON)
 
 	switch class {
 
