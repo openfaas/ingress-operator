@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	cmclientset "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha1"
-
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
 	informers "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions"
 	"github.com/openfaas-incubator/ingress-operator/pkg/controller"
@@ -64,11 +62,6 @@ func main() {
 		glog.Fatalf("Error building FunctionIngress clientset: %s", err.Error())
 	}
 
-	cmClient, err := cmclientset.NewForConfig(cfg)
-	if err != nil {
-		glog.Fatalf("Error building cert-manager clientset: %s", err.Error())
-	}
-
 	ingressNamespace := "openfaas"
 	if namespace, exists := os.LookupEnv("openfaas_gateway_namespace"); exists {
 		ingressNamespace = namespace
@@ -87,7 +80,6 @@ func main() {
 	ctrl := controller.NewController(
 		kubeClient,
 		faasClient,
-		cmClient,
 		kubeInformerFactory,
 		faasInformerFactory,
 	)

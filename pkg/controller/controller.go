@@ -7,11 +7,8 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/google/go-cmp/cmp"
-	cmv1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
-	cmclientset "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha1"
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
 	faasscheme "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/scheme"
@@ -62,9 +59,6 @@ type Controller struct {
 	// faasclientset is a clientset for our own API group
 	faasclientset clientset.Interface
 
-	// cmclientset is a clientset for cert-manager
-	cmclientset *cmclientset.CertmanagerV1alpha1Client
-
 	functionsLister listers.FunctionIngressLister
 
 	functionsSynced cache.InformerSynced
@@ -96,7 +90,6 @@ func checkCustomResourceType(obj interface{}) (faasv1.FunctionIngress, bool) {
 func NewController(
 	kubeclientset kubernetes.Interface,
 	faasclientset clientset.Interface,
-	cmClient *cmclientset.CertmanagerV1alpha1Client,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	functionIngressFactory informers.SharedInformerFactory) *Controller {
 
@@ -118,7 +111,6 @@ func NewController(
 	controller := &Controller{
 		kubeclientset:   kubeclientset,
 		faasclientset:   faasclientset,
-		cmclientset:     cmClient,
 		functionsLister: functionIngress.Lister(),
 		functionsSynced: functionIngress.Informer().HasSynced,
 		ingressLister:   ingressLister,
@@ -274,40 +266,7 @@ func (c *Controller) syncHandler(key string) error {
 		glog.Errorf("cannot get ingress: %s in %s, error: %s", function.Name, namespace, getIngressErr.Error())
 	}
 
-	var createCert bool
-
 	glog.Info("function.Spec.UseTLS() ", function.Spec.UseTLS())
-
-	if function.Spec.UseTLS() {
-		certName := function.ObjectMeta.Name + "-certificate"
-		_, getCertErr := c.cmclientset.Certificates(function.ObjectMeta.Namespace).Get(certName, v1.GetOptions{})
-		notFound := errors.IsNotFound(getCertErr)
-		if getCertErr != nil && !notFound {
-			glog.Errorf("cannot get cert: %s in %s, error: %s", certName, namespace, getCertErr.Error())
-		}
-		createCert = true
-	}
-
-	glog.Info("createCert ", createCert)
-
-	if createCert {
-		glog.Infof("Need to create certifcate for FunctionIngress: %v", fniName)
-
-		if function.Spec.UseTLS() {
-			ingressClass := getClass(function.Spec.IngressType)
-			cert := makeCert(ingressClass, function)
-
-			glog.Infof("Asked for TLS cert for %s via %s\n", function.Spec.Domain, function.Spec.TLS.IssuerRef)
-
-			certs := c.cmclientset.Certificates(function.ObjectMeta.Namespace)
-
-			_, createErr := certs.Create(&cert)
-			if createErr != nil {
-				glog.Errorf("cannot create cert for %s, %s", function.ObjectMeta.Name, createErr.Error())
-			}
-		}
-	}
-
 	glog.Info("createIngress ", createIngress)
 
 	if createIngress {
@@ -491,7 +450,7 @@ func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
 	}
 	return []v1beta1.IngressTLS{
 		v1beta1.IngressTLS{
-			SecretName: function.ObjectMeta.Name + "-secret",
+			SecretName: function.ObjectMeta.Name + "-cert",
 			Hosts: []string{
 				function.Spec.Domain,
 			},
@@ -552,42 +511,4 @@ func makeOwnerRef(function *faasv1.FunctionIngress) []metav1.OwnerReference {
 		}),
 	}
 	return ref
-}
-
-func makeCert(ingressClass string, function *faasv1.FunctionIngress) cmv1alpha1.Certificate {
-	fniName := function.ObjectMeta.Name
-
-	cert := cmv1alpha1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            fniName + "-certificate",
-			Namespace:       function.ObjectMeta.Namespace,
-			OwnerReferences: makeOwnerRef(function),
-		},
-		Spec: cmv1alpha1.CertificateSpec{
-			SecretName: fniName + "-certificate-secret",
-			IssuerRef: cmv1alpha1.ObjectReference{
-				Kind: function.Spec.TLS.IssuerRef.Kind,
-				Name: function.Spec.TLS.IssuerRef.Name,
-			},
-			ACME: &cmv1alpha1.ACMECertificateConfig{
-				Config: []cmv1alpha1.DomainSolverConfig{
-					cmv1alpha1.DomainSolverConfig{
-						Domains: []string{
-							function.Spec.Domain,
-						},
-						SolverConfig: cmv1alpha1.SolverConfig{
-							HTTP01: &cmv1alpha1.HTTP01SolverConfig{
-								IngressClass: &ingressClass,
-							},
-						},
-					},
-				},
-			},
-			DNSNames: []string{
-				function.Spec.Domain,
-			},
-		},
-	}
-
-	return cert
 }
