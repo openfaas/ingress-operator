@@ -53,6 +53,8 @@ Exploring the schema:
 
 * `issuerRef` which issuer to use, this may be a staging or production issuer.
 
+* `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
+
 ## Status
 
 This is work-in-progress prototype and only suitable for development and testing. Contributions and suggestions are welcome.
@@ -183,6 +185,24 @@ spec:
     http01: {}
 ```
 
+or ClusterIssuer
+
+```yaml
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: <your-email-here>
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    http01: {}
+```
+
 Save as `letsencrypt-issuer.yaml` then run `kubectl apply -f letsencrypt-issuer.yaml`.
 
 ### Run or deploy the IngressOperator
@@ -222,6 +242,9 @@ spec:
     enabled: true
     issuerRef:
       name: "letsencrypt-staging"
+      # Change to ClusterIssuer if required
+      # https://docs.cert-manager.io/en/latest/reference/clusterissuers.html
+      # https://docs.cert-manager.io/en/latest/reference/issuers.html
       kind: "Issuer"
 ```
 
