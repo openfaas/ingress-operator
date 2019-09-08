@@ -17,13 +17,13 @@ verify-codegen:
 	./hack/verify-codegen.sh
 
 ci-armhf-build:
-	docker build -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile.armhf
+	docker build -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
 
 ci-armhf-push:
 	docker push openfaas/ingress-operator:$(TAG)-armhf
 
 ci-arm64-build:
-	docker build -t openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile.arm64
+	docker build -t openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
 
 ci-arm64-push:
 	docker push openfaas/ingress-operator:$(TAG)-arm64

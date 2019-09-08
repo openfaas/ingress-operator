@@ -19,7 +19,7 @@ spec:
       serviceAccountName: ingress-operator
       containers:
       - name: operator
-        image: openfaas/ingress-operator:0.3.2-armhf
+        image: openfaas/ingress-operator:0.4.0-armhf
         imagePullPolicy: Always
         command:
           - ./ingress-operator
