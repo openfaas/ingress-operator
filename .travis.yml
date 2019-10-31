@@ -18,15 +18,9 @@ install:
 script:
   - make test
   - make verify-codegen
-  - make build
+  - TAG=${TRAVIS_TAG:-latest} make build
 
 after_success:
   - if [ ! -s "$TRAVIS_TAG" ] ; then
-      docker tag openfaas/ingress-operator:latest openfaas/ingress-operator:$TRAVIS_TAG;
-      echo $DOCKER_PASSWORD | docker login -u=$DOCKER_USERNAME --password-stdin;
-      docker push openfaas/ingress-operator:$TRAVIS_TAG;
-
-      docker tag openfaas/ingress-operator:latest quay.io/openfaas/ingress-operator:$TRAVIS_TAG;
-      echo $QUAY_PASSWORD | docker login -u=$QUAY_USERNAME --password-stdin quay.io;
-      docker push quay.io/openfaas/ingress-operator:$TRAVIS_TAG;
+      TAG=${TRAVIS_TAG} make push manifest
     fi
