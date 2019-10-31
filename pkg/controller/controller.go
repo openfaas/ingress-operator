@@ -473,12 +473,12 @@ func getClass(ingressType string) string {
 func getIssuerKind(issuerType string) string {
 	switch issuerType {
 	case "ClusterIssuer":
-		return "certmanager.k8s.io/cluster-issuer"
+		return "cert-manager.io/cluster-issuer"
 		break
 	default:
-		return "certmanager.k8s.io/issuer"
+		return "cert-manager.io/issuer"
 	}
-	return "certmanager.k8s.io/issuer"
+	return "cert-manager.io/issuer"
 }
 
 func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
@@ -510,7 +510,6 @@ func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 	if function.Spec.UseTLS() {
 		issuerType := getIssuerKind(function.Spec.TLS.IssuerRef.Kind)
 		annotations[issuerType] = function.Spec.TLS.IssuerRef.Name
-		annotations["certmanager.k8s.io/acme-challenge-type"] = "http01"
 	}
 
 	return annotations
