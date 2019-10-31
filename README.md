@@ -20,6 +20,8 @@ This project addresses the following Proposal for Kubernetes: [Proposal: define 
 
 > Looking for a tutorial? See the [OpenFaaS documentation](https://docs.openfaas.com/reference/authentication/)
 
+Supported cert-manager version: [0.11.0](https://docs.cert-manager.io/en/latest/tasks/upgrading/upgrading-0.10-0.11.html)
+
 ## Schema
 
 This is an Operator / controller to build Kubernetes `Ingress` and JetStack `Certificate` objects for functions.
