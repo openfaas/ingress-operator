@@ -1,30 +1,37 @@
-FROM golang:1.11
+ FROM golang:1.13 as builder
 
-RUN mkdir -p /go/src/github.com/openfaas-incubator/ingress-operator/
+ENV GO111MODULE=off
+ENV CGO_ENABLED=0
 
+RUN mkdir -p /go/src/github.com/openfaas-incubator/ingress-operator
 WORKDIR /go/src/github.com/openfaas-incubator/ingress-operator
 
 COPY . .
 
+ARG OPTS
+
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*") && \
+  go test -v ./ && \
   VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') && \
   GIT_COMMIT=$(git rev-list -1 HEAD) && \
-  CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w \
+  env ${OPTS} CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.Release=${VERSION} \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
-  -a -installsuffix cgo -o ingress-operator .
+  -a -installsuffix cgo -o ingress-operator . && \
+  addgroup --system app && \
+  adduser --system --ingroup app app && \
+  mkdir /scratch-tmp
 
-FROM alpine:3.10
+# we can't add user in next stage because it's from scratch
+# ca-certificates and tmp folder are also missing in scratch
+# so we add all of it here and copy files in next stage
 
-RUN addgroup -S app \
-    && adduser -S -g app app \
-    && apk --no-cache add ca-certificates
+FROM scratch
 
-WORKDIR /home/app
-
+COPY --from=0 /etc/passwd /etc/group /etc/
+COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=0 --chown=app:app /scratch-tmp /tmp/
 COPY --from=0 /go/src/github.com/openfaas-incubator/ingress-operator/ingress-operator .
-
-RUN chown -R app:app ./
 
 USER app
 

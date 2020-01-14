@@ -418,8 +418,13 @@ func (c *Controller) handleObject(obj interface{}) {
 
 func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 	path := "/(.*)"
+
+	if len(fni.Spec.Path) > 0 {
+		path = fni.Spec.Path
+	}
+
 	if getClass(fni.Spec.IngressType) == "traefik" {
-		path = "/"
+		path = strings.TrimRight(path, "(.*)")
 	}
 
 	return []v1beta1.IngressRule{

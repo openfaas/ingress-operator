@@ -1,14 +1,28 @@
-.PHONY: build build-armhf push test verify-codegen ci-armhf-build ci-armhf-push ci-arm64-build ci-arm64-push
+.PHONY: build push manifest test verify-codegen charts
 TAG?=latest
 
-build:
-	docker build -t openfaas/ingress-operator:$(TAG) . -f Dockerfile
+# docker manifest command will work with Docker CLI 18.03 or newer
+# but for now it's still experimental feature so we need to enable that
+export DOCKER_CLI_EXPERIMENTAL=enabled
 
-build-armhf:
-	docker build -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile.armhf
+build:
+	docker build -t openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
+	docker build --build-arg OPTS="GOARCH=arm64" -t openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
+	docker build --build-arg OPTS="GOARCH=arm GOARM=6" -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
 
 push:
-	docker push openfaas/ingress-operator:$(TAG)
+	docker push openfaas/ingress-operator:$(TAG)-amd64
+	docker push openfaas/ingress-operator:$(TAG)-arm64
+	docker push openfaas/ingress-operator:$(TAG)-armhf
+
+manifest:
+	docker manifest create --amend openfaas/ingress-operator:$(TAG) \
+		openfaas/ingress-operator:$(TAG)-amd64 \
+		openfaas/ingress-operator:$(TAG)-arm64 \
+		openfaas/ingress-operator:$(TAG)-armhf
+	docker manifest annotate openfaas/ingress-operator:$(TAG) openfaas/ingress-operator:$(TAG)-arm64 --os linux --arch arm64
+	docker manifest annotate openfaas/ingress-operator:$(TAG) openfaas/ingress-operator:$(TAG)-armhf --os linux --arch arm --variant v6
+	docker manifest push -p openfaas/ingress-operator:$(TAG)
 
 test:
 	go test ./...
@@ -16,14 +30,8 @@ test:
 verify-codegen:
 	./hack/verify-codegen.sh
 
-ci-armhf-build:
-	docker build -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
+charts:
+	cd chart && helm package ingress-operator/
+	mv chart/*.tgz docs/
+	helm repo index docs --url https://openfaas-incubator.github.io/ingress-operator/ --merge ./docs/index.yaml
 
-ci-armhf-push:
-	docker push openfaas/ingress-operator:$(TAG)-armhf
-
-ci-arm64-build:
-	docker build -t openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
-
-ci-arm64-push:
-	docker push openfaas/ingress-operator:$(TAG)-arm64

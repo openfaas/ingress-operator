@@ -26,8 +26,10 @@ spec:
           - -logtostderr
           - -v=2
         env:
-        - name: function_namespace
+        - name: core_namespace
           value: openfaas
+        - name: functions_namespace
+          value: openfaas-fn
         resources:
           limits:
             memory: 128Mi
