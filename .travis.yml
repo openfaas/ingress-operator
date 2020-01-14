@@ -2,31 +2,24 @@ sudo: required
 language: go
 
 go:
-  - 1.11.x
+  - 1.13.x
 
 services:
   - docker
 
-addons:
-  apt:
-    packages:
-      - docker-ce
-
-install:
-  - echo "Please don't go get"
-
 script:
-  - make test
-  - make verify-codegen
-  - make build
+- make test
+- make verify-codegen
+- TAG=${TRAVIS_TAG:=latest} make build
 
-after_success:
-  - if [ ! -s "$TRAVIS_TAG" ] ; then
-      docker tag openfaas/ingress-operator:latest openfaas/ingress-operator:$TRAVIS_TAG;
-      echo $DOCKER_PASSWORD | docker login -u=$DOCKER_USERNAME --password-stdin;
-      docker push openfaas/ingress-operator:$TRAVIS_TAG;
+before_deploy:
+- echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-      docker tag openfaas/ingress-operator:latest quay.io/openfaas/ingress-operator:$TRAVIS_TAG;
-      echo $QUAY_PASSWORD | docker login -u=$QUAY_USERNAME --password-stdin quay.io;
-      docker push quay.io/openfaas/ingress-operator:$TRAVIS_TAG;
-    fi
+deploy:
+  provider: script
+  script: TAG=${TRAVIS_TAG} make push manifest
+  on:
+    tags: true
+
+env:
+- GO111MODULE=off
