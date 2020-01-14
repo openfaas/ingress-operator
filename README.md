@@ -7,7 +7,7 @@ OpenFaaS functions are created as pairs with Deployment and Service objects, whi
 
 Deployments should not be exposed directly, but accessed via the OpenFaaS Gateway service.
 
-The gateway has a number of rules including:
+The gateway in OpenFaaS has a number of roles including:
 * providing HA through N replicas
 * adding tracing IDs
 * adding authz
@@ -69,7 +69,7 @@ Todo:
 - [x] Support Zoolando's Skipper
 - [x] Support Traefik
 - [x] Support armhf / Raspberry Pi
-- [ ] Add `.travis.yml` for CI
+- [x] Add `.travis.yml` for CI
 
 ## Deployment
 
