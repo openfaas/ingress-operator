@@ -1,6 +1,8 @@
 OpenFaaS controller for FunctionIngress
 ====
 
+[![Build Status](https://travis-ci.com/openfaas-incubator/ingress-operator.svg?branch=master)](https://travis-ci.com/openfaas-incubator/ingress-operator)
+
 ## Why is this needed?
 
 OpenFaaS functions are created as pairs with Deployment and Service objects, which eventually go on to create a Pod.
