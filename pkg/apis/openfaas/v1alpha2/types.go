@@ -25,6 +25,9 @@ type FunctionIngressSpec struct {
 	// Function such as "nodeinfo"
 	Function string `json:"function"`
 
+	// Path such as /v1/profiles/view/(.*), or leave empty for default
+	Path string `json:"path"`
+
 	// IngressType such as "nginx"
 	IngressType string `json:"ingressType,omitempty"`
 
