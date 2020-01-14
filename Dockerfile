@@ -1,4 +1,4 @@
- FROM golang:1.13 as builder
+FROM golang:1.13 as builder
 
 ENV GO111MODULE=off
 ENV CGO_ENABLED=0
@@ -28,10 +28,10 @@ RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*") && \
 
 FROM scratch
 
-COPY --from=0 /etc/passwd /etc/group /etc/
-COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=0 --chown=app:app /scratch-tmp /tmp/
-COPY --from=0 /go/src/github.com/openfaas-incubator/ingress-operator/ingress-operator .
+COPY --from=builder /etc/passwd /etc/group /etc/
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder --chown=app:app /scratch-tmp /tmp/
+COPY --from=builder /go/src/github.com/openfaas-incubator/ingress-operator/ingress-operator .
 
 USER app
 
