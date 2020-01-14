@@ -40,6 +40,7 @@ spec:
   domain: "nodeinfo.myfaas.club"
   function: "nodeinfo"
   ingressType: "nginx"
+  path: "/v1/profiles/(*.)" # Optionally set a path for the domain i.e. nodeinfo.myfaas.club/v1/profiles/
   # tls:
   #   enabled: true
   #   issuerRef:
@@ -52,6 +53,8 @@ Exploring the schema:
 * The `domain` field corresponds to a DNS entry which points at your IngressController's public IP, or the IP of one of the hosts if using `HostPort`.
 
 * `function` refers to the function you want to expose on the domain.
+
+* `path` set a root path / prefix for the function to be mounted at the domain specified in `domain`
 
 * `tls` whether to provision a TLS certificate using JetStack's [cert-manager](https://github.com/jetstack/cert-manager)
 
