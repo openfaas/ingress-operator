@@ -25,7 +25,7 @@ manifest:
 	docker manifest push -p openfaas/ingress-operator:$(TAG)
 
 test:
-	go test ./...
+	go test -mod=vendor -v ./...
 
 verify-codegen:
 	go get -u -d k8s.io/code-generator@v0.17.0
