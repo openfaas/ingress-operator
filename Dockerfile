@@ -39,5 +39,4 @@ COPY --from=builder /go/src/github.com/openfaas-incubator/ingress-operator/ingre
 
 USER app
 
-ENTRYPOINT ["./ingress-operator"]
-CMD ["-logtostderr"]
+CMD ["./ingress-operator"]
