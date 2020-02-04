@@ -21,4 +21,4 @@ deploy:
   on:
     tags: true
 
-env: GO111MODULE=on GOFLAGS=-mod=vendor
+env: GO111MODULE=on
