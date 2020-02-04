@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	glog "k8s.io/klog"
+	klog "k8s.io/klog"
 )
 
 const controllerAgentName = "ingress-operator"
@@ -80,7 +80,7 @@ func checkCustomResourceType(obj interface{}) (faasv1.FunctionIngress, bool) {
 	var fn *faasv1.FunctionIngress
 	var ok bool
 	if fn, ok = obj.(*faasv1.FunctionIngress); !ok {
-		glog.Errorf("Event Watch received an invalid object: %#v", obj)
+		klog.Errorf("Event Watch received an invalid object: %#v", obj)
 		return faasv1.FunctionIngress{}, false
 	}
 	return *fn, true
@@ -99,9 +99,9 @@ func NewController(
 	// Add o6s types to the default Kubernetes Scheme so Events can be
 	// logged for faas-controller types.
 	faasscheme.AddToScheme(scheme.Scheme)
-	glog.V(4).Info("Creating event broadcaster")
+	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.V(4).Infof)
+	eventBroadcaster.StartLogging(klog.V(4).Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
@@ -118,7 +118,7 @@ func NewController(
 		recorder:        recorder,
 	}
 
-	glog.Info("Setting up event handlers")
+	klog.Info("Setting up event handlers")
 
 	//  Add FunctionIngress Informer
 	//
@@ -156,7 +156,7 @@ func NewController(
 				since := time.Since(event.LastTimestamp.Time)
 				// log abnormal events occurred in the last minute
 				if since.Seconds() < 61 && strings.Contains(event.Type, "Warning") {
-					glog.V(3).Infof("Abnormal event detected on %s %s: %s", event.LastTimestamp, key, event.Message)
+					klog.V(3).Infof("Abnormal event detected on %s %s: %s", event.LastTimestamp, key, event.Message)
 				}
 			}
 		},
@@ -175,20 +175,20 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Start the informer factories to begin populating the informer caches
 	// Wait for the caches to be synced before starting workers
-	glog.Info("Waiting for informer caches to sync")
+	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.functionsSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	glog.Info("Starting workers")
+	klog.Info("Starting workers")
 	// Launch two workers to process Function resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
-	glog.Info("Started workers")
+	klog.Info("Started workers")
 	<-stopCh
-	glog.Info("Shutting down workers")
+	klog.Info("Shutting down workers")
 
 	return nil
 }
@@ -257,17 +257,17 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	fniName := function.ObjectMeta.Name
-	glog.Infof("FunctionIngress name: %v", fniName)
+	klog.Infof("FunctionIngress name: %v", fniName)
 
 	ingresses := c.ingressLister.Ingresses(namespace)
 	ingress, getIngressErr := ingresses.Get(function.Name)
 	createIngress := errors.IsNotFound(getIngressErr)
 	if !createIngress && ingress == nil {
-		glog.Errorf("cannot get ingress: %s in %s, error: %s", function.Name, namespace, getIngressErr.Error())
+		klog.Errorf("cannot get ingress: %s in %s, error: %s", function.Name, namespace, getIngressErr.Error())
 	}
 
-	glog.Info("function.Spec.UseTLS() ", function.Spec.UseTLS())
-	glog.Info("createIngress ", createIngress)
+	klog.Info("function.Spec.UseTLS() ", function.Spec.UseTLS())
+	klog.Info("createIngress ", createIngress)
 
 	if createIngress {
 		rules := makeRules(function)
@@ -288,7 +288,7 @@ func (c *Controller) syncHandler(key string) error {
 
 		_, createErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Create(&newIngress)
 		if createErr != nil {
-			glog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
+			klog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
 		}
 
 		c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
@@ -306,7 +306,7 @@ func (c *Controller) syncHandler(key string) error {
 
 	// Update the Deployment resource if the Function definition differs
 	if ingressNeedsUpdate(&old, function) {
-		glog.Infof("Need to update FunctionIngress: %v", fniName)
+		klog.Infof("Need to update FunctionIngress: %v", fniName)
 
 		if old.ObjectMeta.Name != function.ObjectMeta.Name {
 			return fmt.Errorf("cannot rename object")
@@ -326,7 +326,7 @@ func (c *Controller) syncHandler(key string) error {
 
 		_, updateErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Update(updated)
 		if updateErr != nil {
-			glog.Errorf("error updating ingress: %v", updateErr)
+			klog.Errorf("error updating ingress: %v", updateErr)
 			return updateErr
 		}
 	}
@@ -394,10 +394,10 @@ func (c *Controller) handleObject(obj interface{}) {
 			runtime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
 			return
 		}
-		glog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
+		klog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
 	}
 
-	glog.V(4).Infof("Processing object: %s", object.GetName())
+	klog.V(4).Infof("Processing object: %s", object.GetName())
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
 		// If this object is not owned by a function, we should not do anything more
 		// with it.
@@ -407,7 +407,7 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		function, err := c.functionsLister.FunctionIngresses(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
-			glog.Infof("FunctionIngress '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
+			klog.Infof("FunctionIngress '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
 			return
 		}
 

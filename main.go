@@ -13,7 +13,7 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	glog "k8s.io/klog"
+	klog "k8s.io/klog"
 
 	// required for generating code from CRD
 	_ "k8s.io/code-generator/cmd/client-gen/generators"
@@ -46,24 +46,24 @@ func main() {
 	setupLogging()
 
 	sha, release := version.GetReleaseInfo()
-	glog.Infof("Starting FunctionIngress controller version: %s commit: %s", release, sha)
+	klog.Infof("Starting FunctionIngress controller version: %s commit: %s", release, sha)
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		glog.Fatalf("Error building kubeconfig: %s", err.Error())
+		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building Kubernetes clientset: %s", err.Error())
+		klog.Fatalf("Error building Kubernetes clientset: %s", err.Error())
 	}
 
 	faasClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building FunctionIngress clientset: %s", err.Error())
+		klog.Fatalf("Error building FunctionIngress clientset: %s", err.Error())
 	}
 
 	ingressNamespace := "openfaas"
@@ -92,15 +92,15 @@ func main() {
 	go faasInformerFactory.Start(stopCh)
 
 	if err = ctrl.Run(1, stopCh); err != nil {
-		glog.Fatalf("Error running controller: %s", err.Error())
+		klog.Fatalf("Error running controller: %s", err.Error())
 	}
 }
 
 func setupLogging() {
 	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
-	glog.InitFlags(klogFlags)
+	klog.InitFlags(klogFlags)
 
-	// Sync the glog and klog flags.
+	// Sync the klog and klog flags.
 	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
 		f2 := klogFlags.Lookup(f1.Name)
 		if f2 != nil {
