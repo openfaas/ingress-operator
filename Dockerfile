@@ -3,7 +3,7 @@ FROM teamserverless/license-check:0.3.6 as license-check
 FROM golang:1.13 as builder
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
-ENV GOFLAGS=-mod=vendor
+#ENV GOFLAGS=-mod=vendor
 
 COPY --from=license-check /license-check /usr/bin/
 
@@ -15,10 +15,10 @@ COPY . .
 ARG OPTS
 
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
-RUN go test -v ./
+RUN go test -mod=vendor -v ./
 RUN VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') && \
   GIT_COMMIT=$(git rev-list -1 HEAD) && \
-  env ${OPTS} CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w \
+  env ${OPTS} CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags "-s -w \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.Release=${VERSION} \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
   -a -installsuffix cgo -o ingress-operator . && \

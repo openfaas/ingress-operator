@@ -15,6 +15,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	glog "k8s.io/klog"
 
+	// required for generating code from CRD
+	_ "k8s.io/code-generator/cmd/client-gen/generators"
+
 	// required to authenticate against GKE clusters
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
