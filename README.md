@@ -1,5 +1,7 @@
-OpenFaaS controller for FunctionIngress
+IngressOperator for OpenFaaS
 ====
+
+Get custom domains and TLS for your OpenFaaS Functions through the FunctionIngress CRD
 
 [![Build Status](https://travis-ci.com/openfaas-incubator/ingress-operator.svg?branch=master)](https://travis-ci.com/openfaas-incubator/ingress-operator)
 [![OpenFaaS](https://img.shields.io/badge/openfaas-serverless-blue.svg)](https://www.openfaas.com)
