@@ -1,7 +1,11 @@
-FROM golang:1.13 as builder
+FROM teamserverless/license-check:0.3.6 as license-check
 
-ENV GO111MODULE=off
+FROM golang:1.13 as build
 ENV CGO_ENABLED=0
+ENV GO111MODULE=on
+ENV GOFLAGS=-mod=vendor
+
+COPY --from=license-check /license-check /usr/bin/
 
 RUN mkdir -p /go/src/github.com/openfaas-incubator/ingress-operator
 WORKDIR /go/src/github.com/openfaas-incubator/ingress-operator
@@ -10,9 +14,9 @@ COPY . .
 
 ARG OPTS
 
-RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*") && \
-  go test -v ./ && \
-  VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') && \
+RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
+RUN go test -v ./
+RUN VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') && \
   GIT_COMMIT=$(git rev-list -1 HEAD) && \
   env ${OPTS} CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.Release=${VERSION} \
