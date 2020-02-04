@@ -16,7 +16,7 @@ import (
 	listers "github.com/openfaas-incubator/ingress-operator/pkg/client/listers/openfaas/v1alpha2"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	v1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	extensionsv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
+	networkingv1beta1 "k8s.io/client-go/listers/networking/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -63,7 +63,7 @@ type Controller struct {
 
 	functionsSynced cache.InformerSynced
 
-	ingressLister extensionsv1beta1.IngressLister
+	ingressLister networkingv1beta1.IngressLister
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -105,7 +105,7 @@ func NewController(
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
-	ingressInformer := kubeInformerFactory.Extensions().V1beta1().Ingresses()
+	ingressInformer := kubeInformerFactory.Networking().V1beta1().Ingresses()
 	ingressLister := ingressInformer.Lister()
 
 	controller := &Controller{
@@ -286,7 +286,7 @@ func (c *Controller) syncHandler(key string) error {
 			},
 		}
 
-		_, createErr := c.kubeclientset.Extensions().Ingresses(namespace).Create(&newIngress)
+		_, createErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Create(&newIngress)
 		if createErr != nil {
 			glog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
 		}
@@ -324,7 +324,7 @@ func (c *Controller) syncHandler(key string) error {
 		updated.Spec.Rules = rules
 		updated.Spec.TLS = makeTLS(function)
 
-		_, updateErr := c.kubeclientset.Extensions().Ingresses(namespace).Update(updated)
+		_, updateErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Update(updated)
 		if updateErr != nil {
 			glog.Errorf("error updating ingress: %v", updateErr)
 			return updateErr
