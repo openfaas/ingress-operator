@@ -1,6 +1,6 @@
 FROM teamserverless/license-check:0.3.6 as license-check
 
-FROM golang:1.13 as build
+FROM golang:1.13 as builder
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 ENV GOFLAGS=-mod=vendor

@@ -33,6 +33,7 @@ var pullPolicyOptions = map[string]bool{
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flag.Bool("logtostderr", false, "logtostderr legacy flag")
 }
 
 func main() {
