@@ -28,6 +28,7 @@ test:
 	go test ./...
 
 verify-codegen:
+	go get -u -d k8s.io/code-generator@v0.17.0
 	./hack/verify-codegen.sh
 
 charts:
