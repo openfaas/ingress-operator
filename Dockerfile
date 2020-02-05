@@ -13,6 +13,7 @@ WORKDIR /go/src/github.com/openfaas-incubator/ingress-operator
 COPY . .
 
 ARG OPTS
+RUN go mod download
 
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
 RUN go test -mod=vendor -v ./...
