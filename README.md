@@ -175,7 +175,7 @@ nodeinfo.myfaas.club  178.128.137.209
 
 If using TLS, then install [cert-manager](https://docs.openfaas.com/reference/ssl/kubernetes-with-cert-manager/#install-cert-manager).
 
-Now create an issuer:
+Now create an issuer to use the staging endpoint:
 
 ```yaml
 ---
@@ -186,13 +186,20 @@ metadata:
   namespace: openfaas
 spec:
   acme:
-    server: https://acme-staging.api.letsencrypt.org/directory
+    # The ACME server URL
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
     # Email address used for ACME registration
-    email: <your-email-here>
+    email: user@example.com
     # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
       name: letsencrypt-staging
-    http01: {}
+    # Enable the HTTP-01 challenge provider
+    solvers:
+    # An empty 'selector' means that this solver matches all domains
+    - selector: {}
+      http01:
+        ingress:
+          class: nginx
 ```
 
 or ClusterIssuer
@@ -202,18 +209,36 @@ apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
+  namespace: openfaas
 spec:
   acme:
-    server: https://acme-staging.api.letsencrypt.org/directory
+    # The ACME server URL
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
     # Email address used for ACME registration
-    email: <your-email-here>
+    email: user@example.com
     # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
       name: letsencrypt-staging
-    http01: {}
+    # Enable the HTTP-01 challenge provider
+    solvers:
+    # An empty 'selector' means that this solver matches all domains
+    - selector: {}
+      http01:
+        ingress:
+          class: nginx
 ```
 
+* Edit the `email` and take note of the `namespace`, you will want this to be `openfaas`.
+* If using `traefik` instead of `nginx`, then edit `class: nginx` and replace it as necessary
+
 Save as `letsencrypt-issuer.yaml` then run `kubectl apply -f letsencrypt-issuer.yaml`.
+
+If you are confident in the configuration, switch over to the production issuer, but note that it is rate-limited.
+
+* Change `letsencrypt-staging` to `letsencrypt-prod`
+* Edit `https://acme-staging-v02.api.letsencrypt.org/directory` to `https://acme-v02.api.letsencrypt.org/directory`
+
+Save the file and apply.
 
 ### Run or deploy the IngressOperator
 
