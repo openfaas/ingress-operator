@@ -19,13 +19,13 @@ type FunctionIngress struct {
 // FunctionIngressSpec is the spec for a FunctionIngress resource. It must
 // be created in the same namespace as the gateway, i.e. openfaas.
 type FunctionIngressSpec struct {
-	// Domain such as www.openfaas.com
+	// Domain such as "api.example.com"
 	Domain string `json:"domain"`
 
 	// Function such as "nodeinfo"
 	Function string `json:"function"`
 
-	// Path such as /v1/profiles/view/(.*), or leave empty for default
+	// Path such as "/v1/profiles/view/(.*)", or leave empty for default
 	Path string `json:"path"`
 
 	// IngressType such as "nginx"
@@ -33,6 +33,11 @@ type FunctionIngressSpec struct {
 
 	// Enable TLS via cert-manager
 	TLS *FunctionIngressTLS `json:"tls,omitempty"`
+
+	// BypassGateway, when true creates an Ingress record
+	// directly for the Function name without using the gateway
+	// in the hot path
+	BypassGateway bool `json:"bypassGateway,omitempty"`
 }
 
 // FunctionIngressTLS TLS options
