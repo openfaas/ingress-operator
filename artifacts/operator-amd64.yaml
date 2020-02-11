@@ -1,5 +1,5 @@
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ingress-operator
@@ -14,21 +14,19 @@ spec:
       labels:
         app: ingress-operator
       annotations:
-        prometheus.io.scrape: 'true'
+        prometheus.io.scrape: 'false'
     spec:
       serviceAccountName: ingress-operator
       containers:
       - name: operator
-        image: openfaas/ingress-operator:0.4.1
+        image: openfaas/ingress-operator:0.6.0
         imagePullPolicy: Always
         command:
           - ./ingress-operator
           - -logtostderr
           - -v=2
         env:
-        - name: core_namespace
-          value: openfaas
-        - name: functions_namespace
+        - name: ingress_namespace
           value: openfaas-fn
         resources:
           limits:

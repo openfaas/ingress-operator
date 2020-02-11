@@ -48,6 +48,29 @@ func TestMakeAnnotations_IngressClass(t *testing.T) {
 	}
 }
 
+func TestMakeAnnotations_ByPassRemovesRewriteTarget(t *testing.T) {
+	wantIngressType := "nginx"
+	ingress := faasv1.FunctionIngress{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "nginx",
+			},
+		},
+		Spec: faasv1.FunctionIngressSpec{
+			IngressType:   wantIngressType,
+			Function:      "nodeinfo",
+			BypassGateway: true,
+			Domain:        "nodeinfo.example.com",
+		},
+	}
+
+	result := makeAnnotations(&ingress)
+	t.Log(result)
+	if val, ok := result["nginx.ingress.kubernetes.io/rewrite-target"]; ok {
+		t.Errorf("No rewrite annotations should be given, but got: %s", val)
+	}
+}
+
 func TestMakeAnnotations_IngressClassAdditionalAnnotations(t *testing.T) {
 	defaultRewriteAnnotation := "nginx.ingress.kubernetes.io/rewrite-target"
 	ingress := faasv1.FunctionIngress{
@@ -88,6 +111,47 @@ func Test_makeRules_Nginx_RootPath_HasRegex(t *testing.T) {
 
 	if gotPath != wantPath {
 		t.Errorf("want path %s, but got %s", wantPath, gotPath)
+	}
+
+	gotPort := rules[0].HTTP.Paths[0].Backend.ServicePort
+
+	if gotPort.IntValue() != openfaasWorkloadPort {
+		t.Errorf("want port %d, but got %d", openfaasWorkloadPort, gotPort.IntValue())
+	}
+}
+
+func Test_makeRules_Nginx_RootPath_IsRootWithBypassMode(t *testing.T) {
+	wantFunction := "nodeinfo"
+	ingress := faasv1.FunctionIngress{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{},
+		},
+		Spec: faasv1.FunctionIngressSpec{
+			BypassGateway: true,
+			IngressType:   "nginx",
+			Function:      "nodeinfo",
+			// Path:          "/",
+		},
+	}
+
+	rules := makeRules(&ingress)
+
+	if len(rules) == 0 {
+		t.Errorf("Ingress should give at least one rule")
+		t.Fail()
+	}
+
+	wantPath := "/"
+	gotPath := rules[0].HTTP.Paths[0].Path
+
+	if gotPath != wantPath {
+		t.Errorf("want path %s, but got %s", wantPath, gotPath)
+	}
+
+	gotHost := rules[0].HTTP.Paths[0].Backend.ServiceName
+
+	if gotHost != wantFunction {
+		t.Errorf("want host to be function: %s, but got %s", wantFunction, gotHost)
 	}
 }
 
