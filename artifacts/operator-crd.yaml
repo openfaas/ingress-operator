@@ -16,6 +16,21 @@ spec:
     shortNames:
     - fni
   scope: Namespaced
+  subresources:
+    status: {}
+  additionalPrinterColumns:
+  - name: Domain
+    type: string
+    JSONPath: .spec.domain
+  - name: Function
+    type: string
+    JSONPath: .spec.function
+  - name: IngressType
+    type: string
+    JSONPath: .spec.ingressType
+  - name: TLS
+    type: boolean
+    JSONPath: .spec.tls.enabled
   validation:
     openAPIV3Schema:
       properties:
