@@ -14,7 +14,7 @@ rules:
 - apiGroups: ["openfaas.com"]
   resources: ["functioningresses"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["extensions"]
+- apiGroups: ["extensions", "networking"]
   resources: ["ingresses"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: [""]

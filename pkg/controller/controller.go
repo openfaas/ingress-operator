@@ -36,6 +36,7 @@ import (
 
 const controllerAgentName = "ingress-operator"
 const faasIngressKind = "FunctionIngress"
+const openfaasWorkloadPort = 8080
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a Function is synced
@@ -419,12 +420,21 @@ func (c *Controller) handleObject(obj interface{}) {
 func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 	path := "/(.*)"
 
+	if fni.Spec.BypassGateway {
+		path = "/"
+	}
+
 	if len(fni.Spec.Path) > 0 {
 		path = fni.Spec.Path
 	}
 
 	if getClass(fni.Spec.IngressType) == "traefik" {
 		path = strings.TrimRight(path, "(.*)")
+	}
+
+	serviceHost := "gateway"
+	if fni.Spec.BypassGateway {
+		serviceHost = fni.Spec.Function
 	}
 
 	return []v1beta1.IngressRule{
@@ -436,9 +446,9 @@ func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 						v1beta1.HTTPIngressPath{
 							Path: path,
 							Backend: v1beta1.IngressBackend{
-								ServiceName: "gateway",
+								ServiceName: serviceHost,
 								ServicePort: intstr.IntOrString{
-									IntVal: 8080,
+									IntVal: openfaasWorkloadPort,
 								},
 							},
 						},
@@ -496,20 +506,19 @@ func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
 	annotations["kubernetes.io/ingress.class"] = class
 	annotations["com.openfaas.spec"] = string(specJSON)
 
-	switch class {
-
-	case "nginx":
-		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
-		break
-	case "skipper":
-		annotations["zalando.org/skipper-filter"] = `setPath("/function/` + function.Spec.Function + `")`
-		break
-
-	case "traefik":
-		annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
-		annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
-
-		break
+	if !function.Spec.BypassGateway {
+		switch class {
+		case "nginx":
+			annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+			break
+		case "skipper":
+			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + function.Spec.Function + `")`
+			break
+		case "traefik":
+			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+			annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
+			break
+		}
 	}
 
 	if function.Spec.UseTLS() {

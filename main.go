@@ -36,10 +36,13 @@ var pullPolicyOptions = map[string]bool{
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+
+	// TODO: remove
 	flag.Bool("logtostderr", false, "logtostderr legacy flag")
 }
 
 func main() {
+	// TODO: remove
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
@@ -67,7 +70,7 @@ func main() {
 	}
 
 	ingressNamespace := "openfaas"
-	if namespace, exists := os.LookupEnv("openfaas_gateway_namespace"); exists {
+	if namespace, exists := os.LookupEnv("ingress_namespace"); exists {
 		ingressNamespace = namespace
 	}
 

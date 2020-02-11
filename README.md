@@ -240,6 +240,35 @@ If you are confident in the configuration, switch over to the production issuer,
 
 Save the file and apply.
 
+### Bypass mode
+
+The IngressOperator can be used to create Ingress records that bypass the OpenFaaS Gateway. This may be useful when you are running a non-standard workload such as a brownfields monolith to reduce hops, or with an unsupported protocol like gRPC or websockets.
+
+Example:
+
+```yaml
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: nodeinfo
+  namespace: openfaas-fn
+spec:
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+  bypassGateway: true
+```
+
+Note that since Ingress records must be created in the same namespace as the backend service, `namespace` is changed to `openfaas-fn`.
+
+By default, the OpenFaaS helm chart can deploy the first instance of the operator, if you need gateway bypass, then deploy a second operator using a customised version of `artifacts/operator-amd64.yaml`.
+
+When deploying the operator, you will also need to:
+
+* Set the `ingress_namespace` env-var to `openfaas-fn`
+* Edit the deployment `namespace` to `openfaas-fn`
+* Optionally: edit `artifacts/operator-rbac.yaml` to `openfaas-fn` and apply
+
 ### Run or deploy the IngressOperator
 
 #### In-cluster:
@@ -328,9 +357,9 @@ This project follows the [OpenFaaS contributing guide](./CONTRIBUTING.md)
 
 ## Configuration via Environment Variable
 
-| Option              | Usage                                                                                           |
-|---------------------|-------------------------------------------------------------------------------------------------|
-| `openfaas_gateway_namespace`         | Namespace for the OpenFaaS gateway, default: `openfaas`                        |
+| Option              | Usage                                                                                              |
+|---------------------|----------------------------------------------------------------------------------------------------|
+| `ingress_namespace` | Namespace to create Ingress within, if bypassing gateway, set to `openfaas-fn`. default: `openfaas`|
 
 ## LICENSE
 
