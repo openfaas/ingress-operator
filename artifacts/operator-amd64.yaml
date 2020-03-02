@@ -19,15 +19,13 @@ spec:
       serviceAccountName: ingress-operator
       containers:
       - name: operator
-        image: openfaas/ingress-operator:0.6.0
+        image: openfaas/ingress-operator:0.6.1
         imagePullPolicy: Always
         command:
           - ./ingress-operator
-          - -logtostderr
-          - -v=2
         env:
         - name: ingress_namespace
-          value: openfaas-fn
+          value: openfaas
         resources:
           limits:
             memory: 128Mi
