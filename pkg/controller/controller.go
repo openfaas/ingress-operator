@@ -235,7 +235,7 @@ func (c *Controller) processNextWorkItem() bool {
 }
 
 // syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Function resource
+// converge the two. It then updates the Status block of the fni resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
 	// Convert the namespace/name string into a distinct namespace and name
@@ -245,10 +245,10 @@ func (c *Controller) syncHandler(key string) error {
 		return nil
 	}
 
-	// Get the Function resource with this namespace/name
-	function, err := c.functionsLister.FunctionIngresses(namespace).Get(name)
+	// Get the fni resource with this namespace/name
+	fni, err := c.functionsLister.FunctionIngresses(namespace).Get(name)
 	if err != nil {
-		// The Function resource may no longer exist, in which case we stop processing.
+		// The fni resource may no longer exist, in which case we stop processing.
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("function ingress '%s' in work queue no longer exists", key))
 			return nil
@@ -257,29 +257,29 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
-	fniName := function.ObjectMeta.Name
+	fniName := fni.ObjectMeta.Name
 	klog.Infof("FunctionIngress name: %v", fniName)
 
 	ingresses := c.ingressLister.Ingresses(namespace)
-	ingress, getIngressErr := ingresses.Get(function.Name)
+	ingress, getIngressErr := ingresses.Get(fni.Name)
 	createIngress := errors.IsNotFound(getIngressErr)
 	if !createIngress && ingress == nil {
-		klog.Errorf("cannot get ingress: %s in %s, error: %s", function.Name, namespace, getIngressErr.Error())
+		klog.Errorf("cannot get ingress: %s in %s, error: %s", fni.Name, namespace, getIngressErr.Error())
 	}
 
-	klog.Info("function.Spec.UseTLS() ", function.Spec.UseTLS())
+	klog.Info("fni.Spec.UseTLS() ", fni.Spec.UseTLS())
 	klog.Info("createIngress ", createIngress)
 
 	if createIngress {
-		rules := makeRules(function)
-		tls := makeTLS(function)
+		rules := makeRules(fni)
+		tls := makeTLS(fni)
 
 		newIngress := v1beta1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            name,
 				Namespace:       namespace,
-				Annotations:     makeAnnotations(function),
-				OwnerReferences: makeOwnerRef(function),
+				Annotations:     makeAnnotations(fni),
+				OwnerReferences: makeOwnerRef(fni),
 			},
 			Spec: v1beta1.IngressSpec{
 				Rules: rules,
@@ -292,7 +292,7 @@ func (c *Controller) syncHandler(key string) error {
 			klog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
 		}
 
-		c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+		c.recorder.Event(fni, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 		return nil
 	}
 
@@ -305,25 +305,25 @@ func (c *Controller) syncHandler(key string) error {
 		}
 	}
 
-	// Update the Deployment resource if the Function definition differs
-	if ingressNeedsUpdate(&old, function) {
+	// Update the Deployment resource if the fni definition differs
+	if ingressNeedsUpdate(&old, fni) {
 		klog.Infof("Need to update FunctionIngress: %v", fniName)
 
-		if old.ObjectMeta.Name != function.ObjectMeta.Name {
+		if old.ObjectMeta.Name != fni.ObjectMeta.Name {
 			return fmt.Errorf("cannot rename object")
 		}
 
 		updated := ingress.DeepCopy()
 
-		rules := makeRules(function)
+		rules := makeRules(fni)
 
-		annotations := makeAnnotations(function)
+		annotations := makeAnnotations(fni)
 		for k, v := range annotations {
 			updated.Annotations[k] = v
 		}
 
 		updated.Spec.Rules = rules
-		updated.Spec.TLS = makeTLS(function)
+		updated.Spec.TLS = makeTLS(fni)
 
 		_, updateErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Update(updated)
 		if updateErr != nil {
@@ -339,33 +339,33 @@ func (c *Controller) syncHandler(key string) error {
 		return fmt.Errorf("transient error: %v", err)
 	}
 
-	c.recorder.Event(function, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	c.recorder.Event(fni, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }
 
-func ingressNeedsUpdate(old, function *faasv1.FunctionIngress) bool {
+func ingressNeedsUpdate(old, fni *faasv1.FunctionIngress) bool {
 
-	return !cmp.Equal(old.Spec, function.Spec)
+	return !cmp.Equal(old.Spec, fni.Spec)
 }
 
-func (c *Controller) updateFunctionStatus(function *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
+func (c *Controller) updateFunctionStatus(fni *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
 	// TODO: enable status on K8s 1.12
 	return nil
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
-	functionCopy := function.DeepCopy()
+	functionCopy := fni.DeepCopy()
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
-	// update the Status block of the Function resource. UpdateStatus will not
+	// update the Status block of the fni resource. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	_, err := c.faasclientset.OpenfaasV1alpha2().FunctionIngresses(function.Namespace).Update(functionCopy)
+	_, err := c.faasclientset.OpenfaasV1alpha2().FunctionIngresses(fni.Namespace).Update(functionCopy)
 	return err
 }
 
-// enqueueFunction takes a Function resource and converts it into a namespace/name
+// enqueueFunction takes a fni resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than Function.
+// passed resources of any type other than fni.
 func (c *Controller) enqueueFunction(obj interface{}) {
 	var key string
 	var err error
@@ -377,9 +377,9 @@ func (c *Controller) enqueueFunction(obj interface{}) {
 }
 
 // handleObject will take any resource implementing metav1.Object and attempt
-// to find the Function resource that 'owns' it. It does this by looking at the
+// to find the fni resource that 'owns' it. It does this by looking at the
 // objects metadata.ownerReferences field for an appropriate OwnerReference.
-// It then enqueues that Function resource to be processed. If the object does not
+// It then enqueues that fni resource to be processed. If the object does not
 // have an appropriate OwnerReference, it will simply be skipped.
 func (c *Controller) handleObject(obj interface{}) {
 	var object metav1.Object
@@ -400,19 +400,19 @@ func (c *Controller) handleObject(obj interface{}) {
 
 	klog.V(4).Infof("Processing object: %s", object.GetName())
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
-		// If this object is not owned by a function, we should not do anything more
+		// If this object is not owned by a fni, we should not do anything more
 		// with it.
 		if ownerRef.Kind != faasIngressKind {
 			return
 		}
 
-		function, err := c.functionsLister.FunctionIngresses(object.GetNamespace()).Get(ownerRef.Name)
+		fni, err := c.functionsLister.FunctionIngresses(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
 			klog.Infof("FunctionIngress '%s' deleted. Ignoring orphaned object '%s'", ownerRef.Name, object.GetSelfLink())
 			return
 		}
 
-		c.enqueueFunction(function)
+		c.enqueueFunction(fni)
 		return
 	}
 }
@@ -459,15 +459,15 @@ func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 	}
 }
 
-func makeTLS(function *faasv1.FunctionIngress) []v1beta1.IngressTLS {
-	if !function.Spec.UseTLS() {
+func makeTLS(fni *faasv1.FunctionIngress) []v1beta1.IngressTLS {
+	if !fni.Spec.UseTLS() {
 		return []v1beta1.IngressTLS{}
 	}
 	return []v1beta1.IngressTLS{
 		v1beta1.IngressTLS{
-			SecretName: function.ObjectMeta.Name + "-cert",
+			SecretName: fni.ObjectMeta.Name + "-cert",
 			Hosts: []string{
-				function.Spec.Domain,
+				fni.Spec.Domain,
 			},
 		},
 	}
@@ -496,42 +496,46 @@ func getIssuerKind(issuerType string) string {
 	return "cert-manager.io/issuer"
 }
 
-func makeAnnotations(function *faasv1.FunctionIngress) map[string]string {
-	class := getClass(function.Spec.IngressType)
-	specJSON, _ := json.Marshal(function)
+func makeAnnotations(fni *faasv1.FunctionIngress) map[string]string {
+	class := getClass(fni.Spec.IngressType)
+	specJSON, _ := json.Marshal(fni)
 	annotations := make(map[string]string)
-	for k, v := range function.ObjectMeta.Annotations {
-		annotations[k] = v
-	}
+
 	annotations["kubernetes.io/ingress.class"] = class
 	annotations["com.openfaas.spec"] = string(specJSON)
 
-	if !function.Spec.BypassGateway {
+	if !fni.Spec.BypassGateway {
 		switch class {
 		case "nginx":
-			annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+			annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + "/$1"
 			break
 		case "skipper":
-			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + function.Spec.Function + `")`
+			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + fni.Spec.Function + `")`
 			break
 		case "traefik":
-			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + function.Spec.Function + "/$1"
+			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + "/$1"
 			annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
 			break
 		}
 	}
 
-	if function.Spec.UseTLS() {
-		issuerType := getIssuerKind(function.Spec.TLS.IssuerRef.Kind)
-		annotations[issuerType] = function.Spec.TLS.IssuerRef.Name
+	if fni.Spec.UseTLS() {
+		issuerType := getIssuerKind(fni.Spec.TLS.IssuerRef.Kind)
+		annotations[issuerType] = fni.Spec.TLS.IssuerRef.Name
+	}
+
+	// Set annotations with overrides from FunctionIngress
+	// annotations
+	for k, v := range fni.ObjectMeta.Annotations {
+		annotations[k] = v
 	}
 
 	return annotations
 }
 
-func makeOwnerRef(function *faasv1.FunctionIngress) []metav1.OwnerReference {
+func makeOwnerRef(fni *faasv1.FunctionIngress) []metav1.OwnerReference {
 	ref := []metav1.OwnerReference{
-		*metav1.NewControllerRef(function, schema.GroupVersionKind{
+		*metav1.NewControllerRef(fni, schema.GroupVersionKind{
 			Group:   faasv1.SchemeGroupVersion.Group,
 			Version: faasv1.SchemeGroupVersion.Version,
 			Kind:    faasIngressKind,

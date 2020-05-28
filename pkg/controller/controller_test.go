@@ -28,13 +28,31 @@ func TestMakeAnnotations_AnnotationsCopied(t *testing.T) {
 	}
 }
 
-func TestMakeAnnotations_IngressClass(t *testing.T) {
+func TestMakeAnnotations_IngressClassCanOverride(t *testing.T) {
 	wantIngressType := "nginx"
 	ingress := faasv1.FunctionIngress{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"kubernetes.io/ingress.class": "traefik",
+				"kubernetes.io/ingress.class": wantIngressType,
 			},
+		},
+		Spec: faasv1.FunctionIngressSpec{
+			IngressType: wantIngressType,
+		},
+	}
+
+	result := makeAnnotations(&ingress)
+
+	if val, ok := result["kubernetes.io/ingress.class"]; !ok || val != wantIngressType {
+		t.Errorf("Failed to find expected ingress class annotation. Expected '%s' but got '%s'", wantIngressType, val)
+	}
+}
+
+func TestMakeAnnotations_IngressClassDefaultsToNginx(t *testing.T) {
+	wantIngressType := "nginx"
+	ingress := faasv1.FunctionIngress{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{},
 		},
 		Spec: faasv1.FunctionIngressSpec{
 			IngressType: wantIngressType,
