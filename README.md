@@ -240,6 +240,28 @@ If you are confident in the configuration, switch over to the production issuer,
 
 Save the file and apply.
 
+### Custom annotations
+
+You can also set custom annotations to be passed down to the Ingress record created by the operator.
+
+Example:
+
+This example adds one of the required annotations for basic auth as defined in the [ingress-nginx docs](https://kubernetes.github.io/ingress-nginx/examples/auth/basic/).
+
+```yaml
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: nodeinfo
+  namespace: openfaas
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+spec:
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+```
+
 ### Bypass mode
 
 The IngressOperator can be used to create Ingress records that bypass the OpenFaaS Gateway. This may be useful when you are running a non-standard workload such as a brownfields monolith to reduce hops, or with an unsupported protocol like gRPC or websockets.
