@@ -107,6 +107,36 @@ func TestMakeAnnotations_IngressClassAdditionalAnnotations(t *testing.T) {
 	}
 }
 
+func TestMakeAnnotations_TraefikAnnotationsAreCorrect(t *testing.T) {
+	wantIngressType := "traefik"
+	ingress := faasv1.FunctionIngress{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "traefik",
+			},
+		},
+		Spec: faasv1.FunctionIngressSpec{
+			IngressType:   wantIngressType,
+			Function:      "nodeinfo",
+			BypassGateway: false,
+			Domain:        "nodeinfo.example.com",
+		},
+	}
+
+	result := makeAnnotations(&ingress)
+	t.Log(result)
+
+	wantRewriteTarget := "/function/" + ingress.Spec.Function
+	if val, ok := result["traefik.ingress.kubernetes.io/rewrite-target"]; !ok || val != wantRewriteTarget {
+		t.Errorf("Failed to find expected rewrite target annotation. Expected '%s' but got '%s'", wantRewriteTarget, val)
+	}
+
+	wantRuleType := "PathPrefix"
+	if val, ok := result["traefik.ingress.kubernetes.io/rule-type"]; !ok || val != wantRuleType {
+		t.Errorf("Failed to find expected rule type annotation. Expected '%s' but got '%s'", wantRuleType, val)
+	}
+}
+
 func Test_makeRules_Nginx_RootPath_HasRegex(t *testing.T) {
 	ingress := faasv1.FunctionIngress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -223,7 +253,7 @@ func Test_makeRules_Traefik_RootPath_TrimsRegex(t *testing.T) {
 	}
 }
 
-func Test_makeRules_Traefik_NestedPath_TrimsRegex(t *testing.T) {
+func Test_makeRules_Traefik_NestedPath_TrimsRegex_And_TrailingSlash(t *testing.T) {
 	ingress := faasv1.FunctionIngress{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{},
@@ -241,7 +271,7 @@ func Test_makeRules_Traefik_NestedPath_TrimsRegex(t *testing.T) {
 		t.Fail()
 	}
 
-	wantPath := "/v1/profiles/view/"
+	wantPath := "/v1/profiles/view"
 	gotPath := rules[0].HTTP.Paths[0].Path
 	if gotPath != wantPath {
 		t.Errorf("want path %s, but got %s", wantPath, gotPath)

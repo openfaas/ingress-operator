@@ -229,7 +229,10 @@ spec:
 ```
 
 * Edit the `email` and take note of the `namespace`, you will want this to be `openfaas`.
-* If using `traefik` instead of `nginx`, then edit `class: nginx` and replace it as necessary
+* If using `traefik` instead of `nginx`, then edit `class: nginx` and replace it as necessary.
+  **Recommended version is v1.7.21 or above**, previous versions will incorrectly route requests
+  to your function (with duplicated path, see
+  [related issue](https://github.com/openfaas-incubator/ingress-operator/issues/30)).
 
 Save as `letsencrypt-issuer.yaml` then run `kubectl apply -f letsencrypt-issuer.yaml`.
 
