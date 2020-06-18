@@ -429,7 +429,12 @@ func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 	}
 
 	if getClass(fni.Spec.IngressType) == "traefik" {
-		path = strings.TrimRight(path, "(.*)")
+		// We have to trim the regex and the trailing slash for Traefik,
+		// otherwise routing won't work
+		path = strings.TrimRight(path, "/(.*)")
+		if len(path) == 0 {
+			path = "/"
+		}
 	}
 
 	serviceHost := "gateway"
@@ -513,7 +518,7 @@ func makeAnnotations(fni *faasv1.FunctionIngress) map[string]string {
 			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + fni.Spec.Function + `")`
 			break
 		case "traefik":
-			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + "/$1"
+			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function
 			annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
 			break
 		}
