@@ -296,7 +296,7 @@ When deploying the operator, you will also need to:
 #### In-cluster:
 
 ```sh
-kubectl apply -f ./artifacts/
+kubectl apply -R -f ./artifacts/
 
 kubectl logs -n openfaas deploy/ingress-operator
 ```
@@ -305,7 +305,7 @@ kubectl logs -n openfaas deploy/ingress-operator
 
 ```sh
 rm ./artifacts/operator-amd64.yaml
-kubectl apply -f ./artifacts/
+kubectl apply -R -f ./artifacts/
 
 go build && ./ingress-operator -kubeconfig=./config
 ```
