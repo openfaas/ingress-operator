@@ -265,6 +265,24 @@ spec:
   ingressType: "nginx"
 ```
 
+### Asynchronous functions
+
+This example exposes the nodeinfo function for asynchronous invocation by rewriting its path to the gateway URL including the `/async-function` prefix instead of the usual `/function/`.
+
+```yaml
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: nodeinfo
+  namespace: openfaas
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /async-function/nodeinfo/$1
+spec:
+  domain: "nodeinfo.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+  ```
+
 ### Bypass mode
 
 The IngressOperator can be used to create Ingress records that bypass the OpenFaaS Gateway. This may be useful when you are running a non-standard workload such as a brownfields monolith to reduce hops, or with an unsupported protocol like gRPC or websockets.
