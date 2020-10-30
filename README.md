@@ -51,18 +51,49 @@ spec:
   #     kind: "Issuer"
 ```
 
+```yaml
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: nodeinfo
+  namespace: openfaas
+spec:
+  domain: "api.myfaas.club"
+  function: "nodeinfo"
+  ingressType: "nginx"
+  path: "/v1/nodeinfo/(.*)"
+---
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: env
+  namespace: openfaas
+spec:
+  domain: "api.myfaas.club"
+  function: "env"
+  ingressType: "nginx"
+  path: "/v1/env/(.*)"
+---
+apiVersion: openfaas.com/v1alpha2
+kind: FunctionIngress
+metadata:
+  name: certinfo
+  namespace: openfaas
+spec:
+  domain: "api.myfaas.club"
+  function: "certinfo"
+  ingressType: "nginx"
+  path: "/v1/certinfo/(.*)"
+```
+
+
 Exploring the schema:
 
 * The `domain` field corresponds to a DNS entry which points at your IngressController's public IP, or the IP of one of the hosts if using `HostPort`.
-
 * `function` refers to the function you want to expose on the domain.
-
 * `path` set a root path / prefix for the function to be mounted at the domain specified in `domain`
-
 * `tls` whether to provision a TLS certificate using JetStack's [cert-manager](https://github.com/jetstack/cert-manager)
-
 * `issuerRef` which issuer to use, this may be a staging or production issuer.
-
 * `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
 
 ## Status
@@ -78,26 +109,13 @@ Todo:
 - [x] Support Traefik
 - [x] Support armhf / Raspberry Pi
 - [x] Add `.travis.yml` for CI
+- [x] REST-style path prefixes for functions
 
 ## Deployment
 
 ### Pre-reqs
 
 There are several pre-reqs for a working installation, but some of these components are installed with OpenFaaS and can also be found in [the docs](https://docs.openfaas.com/).
-
-#### Install: `tiller`
-
-```
-curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
-
-kubectl -n kube-system create sa tiller \
-  && kubectl create clusterrolebinding tiller \
-  --clusterrole cluster-admin \
-  --serviceaccount=kube-system:tiller
-
-## Wait for tiller
-helm init --skip-refresh --upgrade --service-account tiller --wait
-```
 
 #### IngressController: `nginx`
 
