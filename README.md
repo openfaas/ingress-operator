@@ -43,7 +43,7 @@ spec:
   domain: "nodeinfo.myfaas.club"
   function: "nodeinfo"
   ingressType: "nginx"
-  path: "/v1/profiles/(*.)" # Optionally set a path for the domain i.e. nodeinfo.myfaas.club/v1/profiles/
+  path: "/v1/profiles/(.*)" # Optionally set a path for the domain i.e. nodeinfo.myfaas.club/v1/profiles/
   # tls:
   #   enabled: true
   #   issuerRef:
@@ -61,57 +61,7 @@ Exploring the schema:
 * `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
 
 ### REST-style mapping of functions
-
-Here we map three functions to a REST-style API:
-
-```
-env -> /v1/env/
-nodeinfo -> /v1/nodeinfo/
-certinfo -> /v1/certinfo/
-```
-
-```
-faas-cli deploy --image functions/alpine:latest --name env --fprocess env
-faas-cli store deploy nodeinfo
-faas-cli store deploy certinfo
-```
-
-Then use this FunctionIngress YAML:
-
-```yaml
-apiVersion: openfaas.com/v1alpha2
-kind: FunctionIngress
-metadata:
-  name: nodeinfo
-  namespace: openfaas
-spec:
-  domain: "api.myfaas.club"
-  function: "nodeinfo"
-  ingressType: "nginx"
-  path: "/v1/nodeinfo/(.*)"
----
-apiVersion: openfaas.com/v1alpha2
-kind: FunctionIngress
-metadata:
-  name: env
-  namespace: openfaas
-spec:
-  domain: "api.myfaas.club"
-  function: "env"
-  ingressType: "nginx"
-  path: "/v1/env/(.*)"
----
-apiVersion: openfaas.com/v1alpha2
-kind: FunctionIngress
-metadata:
-  name: certinfo
-  namespace: openfaas
-spec:
-  domain: "api.myfaas.club"
-  function: "certinfo"
-  ingressType: "nginx"
-  path: "/v1/certinfo/(.*)"
-```
+See an example in the [OpenFaaS docs](https://docs.openfaas.com/reference/ssl/kubernetes-with-cert-manager/#30-rest-style-api-mapping-for-your-functions)
 
 ## Status
 
