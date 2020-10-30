@@ -51,6 +51,33 @@ spec:
   #     kind: "Issuer"
 ```
 
+Exploring the schema:
+
+* The `domain` field corresponds to a DNS entry which points at your IngressController's public IP, or the IP of one of the hosts if using `HostPort`.
+* `function` refers to the function you want to expose on the domain.
+* `path` set a root path / prefix for the function to be mounted at the domain specified in `domain`
+* `tls` whether to provision a TLS certificate using JetStack's [cert-manager](https://github.com/jetstack/cert-manager)
+* `issuerRef` which issuer to use, this may be a staging or production issuer.
+* `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
+
+### REST-style mapping of functions
+
+Here we map three functions to a REST-style API:
+
+```
+env -> /v1/env/
+nodeinfo -> /v1/nodeinfo/
+certinfo -> /v1/certinfo/
+```
+
+```
+faas-cli deploy --image functions/alpine:latest --name env --fprocess env
+faas-cli store deploy nodeinfo
+faas-cli store deploy certinfo
+```
+
+Then use this FunctionIngress YAML:
+
 ```yaml
 apiVersion: openfaas.com/v1alpha2
 kind: FunctionIngress
@@ -85,16 +112,6 @@ spec:
   ingressType: "nginx"
   path: "/v1/certinfo/(.*)"
 ```
-
-
-Exploring the schema:
-
-* The `domain` field corresponds to a DNS entry which points at your IngressController's public IP, or the IP of one of the hosts if using `HostPort`.
-* `function` refers to the function you want to expose on the domain.
-* `path` set a root path / prefix for the function to be mounted at the domain specified in `domain`
-* `tls` whether to provision a TLS certificate using JetStack's [cert-manager](https://github.com/jetstack/cert-manager)
-* `issuerRef` which issuer to use, this may be a staging or production issuer.
-* `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
 
 ## Status
 
