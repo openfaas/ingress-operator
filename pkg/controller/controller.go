@@ -468,9 +468,11 @@ func makeTLS(fni *faasv1.FunctionIngress) []v1beta1.IngressTLS {
 	if !fni.Spec.UseTLS() {
 		return []v1beta1.IngressTLS{}
 	}
+
+
 	return []v1beta1.IngressTLS{
 		v1beta1.IngressTLS{
-			SecretName: fni.ObjectMeta.Name + "-cert",
+			SecretName: fni.Spec.Domain + "-cert",
 			Hosts: []string{
 				fni.Spec.Domain,
 			},
@@ -494,11 +496,9 @@ func getIssuerKind(issuerType string) string {
 	switch issuerType {
 	case "ClusterIssuer":
 		return "cert-manager.io/cluster-issuer"
-		break
 	default:
 		return "cert-manager.io/issuer"
 	}
-	return "cert-manager.io/issuer"
 }
 
 func makeAnnotations(fni *faasv1.FunctionIngress) map[string]string {
