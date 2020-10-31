@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"reflect"
 	"testing"
 
+	v1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
@@ -275,5 +277,52 @@ func Test_makeRules_Traefik_NestedPath_TrimsRegex_And_TrailingSlash(t *testing.T
 	gotPath := rules[0].HTTP.Paths[0].Path
 	if gotPath != wantPath {
 		t.Errorf("want path %s, but got %s", wantPath, gotPath)
+	}
+}
+
+func Test_makTLS(t *testing.T) {
+
+	cases := []struct {
+		name     string
+		fni      *faasv1.FunctionIngress
+		expected []v1beta1.IngressTLS
+	}{
+		{
+			name:     "tls disabled results in empty tls config",
+			fni:      &faasv1.FunctionIngress{Spec: faasv1.FunctionIngressSpec{TLS: &faasv1.FunctionIngressTLS{Enabled: false}}},
+			expected: []v1beta1.IngressTLS{},
+		},
+		{
+			name: "tls enabled creates TLS object with correct host and secret with matching the host",
+			fni: &faasv1.FunctionIngress{
+				Spec: faasv1.FunctionIngressSpec{
+					Domain: "foo.example.com",
+					TLS: &faasv1.FunctionIngressTLS{
+						Enabled: true,
+						IssuerRef: faasv1.ObjectReference{
+							Name:"test-issuer",
+							Kind: "ClusterIssuer",
+						},
+					},
+				},
+			},
+			expected: []v1beta1.IngressTLS{
+				{
+					SecretName: "foo.example.com-cert",
+					Hosts: []string{
+						"foo.example.com",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := makeTLS(tc.fni)
+			if !reflect.DeepEqual(tc.expected, got) {
+				t.Fatalf("want tls config %v, got %v", tc.expected, got)
+			}
+		})
 	}
 }
