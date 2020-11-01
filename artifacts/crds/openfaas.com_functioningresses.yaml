@@ -68,14 +68,10 @@ spec:
                   required:
                   - name
                   type: object
-              required:
-              - enabled
-              - issuerRef
               type: object
           required:
           - domain
           - function
-          - path
           type: object
       required:
       - spec
@@ -89,5 +85,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
-  storedVersions: null
+  conditions: []
+  storedVersions: []
