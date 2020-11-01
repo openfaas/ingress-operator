@@ -26,24 +26,30 @@ type FunctionIngressSpec struct {
 	Function string `json:"function"`
 
 	// Path such as "/v1/profiles/view/(.*)", or leave empty for default
+	// +optional
 	Path string `json:"path"`
 
 	// IngressType such as "nginx"
+	// +optional
 	IngressType string `json:"ingressType,omitempty"`
 
 	// Enable TLS via cert-manager
+	// +optional
 	TLS *FunctionIngressTLS `json:"tls,omitempty"`
 
 	// BypassGateway, when true creates an Ingress record
 	// directly for the Function name without using the gateway
 	// in the hot path
+	// +optional
 	BypassGateway bool `json:"bypassGateway,omitempty"`
 }
 
 // FunctionIngressTLS TLS options
 type FunctionIngressTLS struct {
+	// +optional
 	Enabled bool `json:"enabled"`
 
+	// +optional
 	IssuerRef ObjectReference `json:"issuerRef"`
 }
 
