@@ -379,6 +379,9 @@ kubectl get FunctionIngress -n openfaas
 
 Remember to configure DNS for `nodeinfo.myfaas.club` or edit `/etc/hosts` and point to your `IngressController`'s IP or `LoadBalancer`.
 
+## Kubernetes versions
+Ingress Operator currently requires Kubernetes version 1.16+
+
 ## Contributing
 
 This project follows the [OpenFaaS contributing guide](./CONTRIBUTING.md)

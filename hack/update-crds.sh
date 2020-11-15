@@ -3,15 +3,15 @@
 export controllergen="$GOPATH/bin/controller-gen"
 export PKG=sigs.k8s.io/controller-tools/cmd/controller-gen
 
-if [ ! -e "$gen" ]
+if [ ! -e "$controllergen" ]
 then
 echo "Getting $PKG"
     GO111MODULE=off go get $PKG
 fi
 
-echo $controllergen
+echo "using $controllergen"
 
-echo "$controllergen" \
+"$controllergen" \
   crd \
   schemapatch:manifests=./artifacts/crds \
   paths=./pkg/apis/... \
