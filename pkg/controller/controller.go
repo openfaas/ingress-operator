@@ -127,6 +127,7 @@ func NewController(
 	functionIngress.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueFunction,
 		UpdateFunc: func(old, new interface{}) {
+
 			oldFn, ok := checkCustomResourceType(old)
 			if !ok {
 				return
@@ -135,7 +136,10 @@ func NewController(
 			if !ok {
 				return
 			}
-			if diff := cmp.Diff(oldFn.Spec, newFn.Spec); diff != "" {
+			diffSpec := cmp.Diff(oldFn.Spec, newFn.Spec)
+			diffAnnotations := cmp.Diff(oldFn.ObjectMeta.Annotations, newFn.ObjectMeta.Annotations)
+
+			if diffSpec != "" || diffAnnotations != "" {
 				controller.enqueueFunction(new)
 			}
 		},
@@ -307,7 +311,7 @@ func (c *Controller) syncHandler(key string) error {
 
 	// Update the Deployment resource if the fni definition differs
 	if ingressNeedsUpdate(&old, fni) {
-		klog.Infof("Need to update FunctionIngress: %v", fniName)
+		klog.Infof("Updating FunctionIngress: %s", fniName)
 
 		if old.ObjectMeta.Name != fni.ObjectMeta.Name {
 			return fmt.Errorf("cannot rename object")
@@ -344,8 +348,8 @@ func (c *Controller) syncHandler(key string) error {
 }
 
 func ingressNeedsUpdate(old, fni *faasv1.FunctionIngress) bool {
-
-	return !cmp.Equal(old.Spec, fni.Spec)
+	return !cmp.Equal(old.Spec, fni.Spec) ||
+		!cmp.Equal(old.ObjectMeta.Annotations, fni.ObjectMeta.Annotations)
 }
 
 func (c *Controller) updateFunctionStatus(fni *faasv1.FunctionIngress, deployment *appsv1beta2.Deployment) error {
@@ -468,7 +472,6 @@ func makeTLS(fni *faasv1.FunctionIngress) []v1beta1.IngressTLS {
 	if !fni.Spec.UseTLS() {
 		return []v1beta1.IngressTLS{}
 	}
-
 
 	return []v1beta1.IngressTLS{
 		v1beta1.IngressTLS{
