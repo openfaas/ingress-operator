@@ -61,6 +61,7 @@ Exploring the schema:
 * `issuerRef.kind` Issuer or ClusterIssuer, This depends on whats available in your cluster
 
 ### REST-style mapping of functions
+
 See an example in the [OpenFaaS docs](https://docs.openfaas.com/reference/ssl/kubernetes-with-cert-manager/#30-rest-style-api-mapping-for-your-functions)
 
 ## Status
@@ -76,6 +77,10 @@ Completed backlog items:
 - [x] Support armhf / Raspberry Pi
 - [x] Add `.travis.yml` for CI
 - [x] REST-style path prefixes for functions
+
+Remaining items:
+
+- [ ] Synchronise annotations upon edit of FunctionIngress CRs [#39](https://github.com/openfaas/ingress-operator/issues/)
 
 ## Deployment
 
