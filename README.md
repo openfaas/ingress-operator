@@ -65,9 +65,8 @@ See an example in the [OpenFaaS docs](https://docs.openfaas.com/reference/ssl/ku
 
 ## Status
 
-This is work-in-progress prototype and only suitable for development and testing. Contributions and suggestions are welcome.
+Completed backlog items:
 
-Todo:
 - [x] Create `Ingress` records for HTTP
 - [x] Create `Ingress` records for HTTPS
 - [x] Create cert-manager `Certificate` records
