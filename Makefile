@@ -6,23 +6,23 @@ TAG?=latest
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
 build:
-	docker build -t openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
-	docker build --build-arg OPTS="GOARCH=arm64" -t openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
-	docker build --build-arg OPTS="GOARCH=arm GOARM=6" -t openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
+	docker build -t ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
+	docker build --build-arg OPTS="GOARCH=arm64" -t ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
+	docker build --build-arg OPTS="GOARCH=arm GOARM=6" -t ghcr.io/openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
 
 push:
-	docker push openfaas/ingress-operator:$(TAG)-amd64
-	docker push openfaas/ingress-operator:$(TAG)-arm64
-	docker push openfaas/ingress-operator:$(TAG)-armhf
+	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-amd64
+	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-arm64
+	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-armhf
 
 manifest:
-	docker manifest create --amend openfaas/ingress-operator:$(TAG) \
-		openfaas/ingress-operator:$(TAG)-amd64 \
-		openfaas/ingress-operator:$(TAG)-arm64 \
-		openfaas/ingress-operator:$(TAG)-armhf
-	docker manifest annotate openfaas/ingress-operator:$(TAG) openfaas/ingress-operator:$(TAG)-arm64 --os linux --arch arm64
-	docker manifest annotate openfaas/ingress-operator:$(TAG) openfaas/ingress-operator:$(TAG)-armhf --os linux --arch arm --variant v6
-	docker manifest push -p openfaas/ingress-operator:$(TAG)
+	docker manifest create --amend ghcr.io/openfaas/ingress-operator:$(TAG) \
+		ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 \
+		ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 \
+		ghcr.io/openfaas/ingress-operator:$(TAG)-armhf
+	docker manifest annotate ghcr.io/openfaas/ingress-operator:$(TAG) ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 --os linux --arch arm64
+	docker manifest annotate ghcr.io/openfaas/ingress-operator:$(TAG) ghcr.io/openfaas/ingress-operator:$(TAG)-armhf --os linux --arch arm --variant v6
+	docker manifest push -p ghcr.io/openfaas/ingress-operator:$(TAG)
 
 test:
 	go test -mod=vendor -v ./...
