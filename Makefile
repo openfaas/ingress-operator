@@ -28,11 +28,10 @@ test:
 	go test -mod=vendor -v ./...
 
 verify-codegen:
-	go get -u -d k8s.io/code-generator@v0.17.0
+	go get -u -d k8s.io/code-generator@v0.19.0
 	./hack/verify-codegen.sh
 
 charts:
 	cd chart && helm package ingress-operator/
 	mv chart/*.tgz docs/
 	helm repo index docs --url https://openfaas-incubator.github.io/ingress-operator/ --merge ./docs/index.yaml
-

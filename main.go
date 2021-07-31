@@ -7,13 +7,14 @@ import (
 
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
 	informers "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions"
-	"github.com/openfaas-incubator/ingress-operator/pkg/controller"
+	controllerv1 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v1"
+	controllerv2 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v2"
 	"github.com/openfaas-incubator/ingress-operator/pkg/signals"
 	"github.com/openfaas-incubator/ingress-operator/pkg/version"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	klog "k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
 	// required for generating code from CRD
 	_ "k8s.io/code-generator/cmd/client-gen/generators"
@@ -84,12 +85,27 @@ func main() {
 	faasInformerFactory := informers.
 		NewSharedInformerFactoryWithOptions(faasClient, defaultResync, faasInformerOpt)
 
-	ctrl := controller.NewController(
-		kubeClient,
-		faasClient,
-		kubeInformerFactory,
-		faasInformerFactory,
-	)
+	capabilities, err := getCapabilities(kubeClient)
+	if err != nil {
+		klog.Fatalf("Error retrieving Kubernetes cluster capabilities: %s", err.Error())
+	}
+
+	var ctrl controller
+	if capabilities.Has("extensions/v1beta1") {
+		ctrl = controllerv1.NewController(
+			kubeClient,
+			faasClient,
+			kubeInformerFactory,
+			faasInformerFactory,
+		)
+	} else {
+		ctrl = controllerv2.NewController(
+			kubeClient,
+			faasClient,
+			kubeInformerFactory,
+			faasInformerFactory,
+		)
+	}
 
 	go kubeInformerFactory.Start(stopCh)
 	go faasInformerFactory.Start(stopCh)
@@ -97,6 +113,10 @@ func main() {
 	if err = ctrl.Run(1, stopCh); err != nil {
 		klog.Fatalf("Error running controller: %s", err.Error())
 	}
+}
+
+type controller interface {
+	Run(int, <-chan struct{}) error
 }
 
 func setupLogging() {
@@ -111,4 +131,27 @@ func setupLogging() {
 			f2.Value.Set(value)
 		}
 	})
+}
+
+type Capabilities map[string]bool
+
+func (c Capabilities) Has(wanted string) bool {
+	return c[wanted]
+}
+
+func getCapabilities(client kubernetes.Interface) (Capabilities, error) {
+
+	groupList, err := client.Discovery().ServerGroups()
+	if err != nil {
+		return nil, err
+	}
+
+	caps := Capabilities{}
+	for _, g := range groupList.Groups {
+		for _, gv := range g.Versions {
+			caps[gv.GroupVersion] = true
+		}
+	}
+
+	return caps, nil
 }
