@@ -8,131 +8,189 @@ import (
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
 )
 
-func TestMakeAnnotations_AnnotationsCopied(t *testing.T) {
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"test":    "test",
-				"example": "example",
+func TestMakeAnnotations(t *testing.T) {
+	cases := []struct {
+		name     string
+		ingress  faasv1.FunctionIngress
+		expected map[string]string
+		excluded []string
+	}{
+		{
+			name: "base case, annotations are copied, default class is nginx",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"test":    "test",
+						"example": "example",
+					},
+				},
 			},
-		},
-	}
-
-	result := MakeAnnotations(&ingress)
-
-	if _, ok := result["test"]; !ok {
-		t.Errorf("Failed to find expected annotation 'test'")
-	}
-	if _, ok := result["example"]; !ok {
-		t.Errorf("Failed to find expected annotation 'example'")
-	}
-}
-
-func TestMakeAnnotations_IngressClassCanOverride(t *testing.T) {
-	wantIngressType := "nginx"
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class": wantIngressType,
-			},
-		},
-		Spec: faasv1.FunctionIngressSpec{
-			IngressType: wantIngressType,
-		},
-	}
-
-	result := MakeAnnotations(&ingress)
-
-	if val, ok := result["kubernetes.io/ingress.class"]; !ok || val != wantIngressType {
-		t.Errorf("Failed to find expected ingress class annotation. Expected '%s' but got '%s'", wantIngressType, val)
-	}
-}
-
-func TestMakeAnnotations_IngressClassDefaultsToNginx(t *testing.T) {
-	wantIngressType := "nginx"
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{},
-		},
-		Spec: faasv1.FunctionIngressSpec{
-			IngressType: wantIngressType,
-		},
-	}
-
-	result := MakeAnnotations(&ingress)
-
-	if val, ok := result["kubernetes.io/ingress.class"]; !ok || val != wantIngressType {
-		t.Errorf("Failed to find expected ingress class annotation. Expected '%s' but got '%s'", wantIngressType, val)
-	}
-}
-
-func TestMakeAnnotations_ByPassRemovesRewriteTarget(t *testing.T) {
-	wantIngressType := "nginx"
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
+			expected: map[string]string{
+				"test":                        "test",
+				"example":                     "example",
 				"kubernetes.io/ingress.class": "nginx",
 			},
 		},
-		Spec: faasv1.FunctionIngressSpec{
-			IngressType:   wantIngressType,
-			Function:      "nodeinfo",
-			BypassGateway: true,
-			Domain:        "nodeinfo.example.com",
-		},
-	}
-
-	result := MakeAnnotations(&ingress)
-	t.Log(result)
-	if val, ok := result["nginx.ingress.kubernetes.io/rewrite-target"]; ok {
-		t.Errorf("No rewrite annotations should be given, but got: %s", val)
-	}
-}
-
-func TestMakeAnnotations_IngressClassAdditionalAnnotations(t *testing.T) {
-	defaultRewriteAnnotation := "nginx.ingress.kubernetes.io/rewrite-target"
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{},
-		},
-		Spec: faasv1.FunctionIngressSpec{
-			IngressType: "nginx",
-		},
-	}
-
-	result := MakeAnnotations(&ingress)
-
-	if _, ok := result[defaultRewriteAnnotation]; !ok {
-		t.Errorf("Failed to find expected rewrite-target annotation")
-	}
-}
-
-func TestMakeAnnotations_TraefikAnnotationsAreCorrect(t *testing.T) {
-	wantIngressType := "traefik"
-	ingress := faasv1.FunctionIngress{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class": "traefik",
+		{
+			name: "can override ingress class value",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "awesome-nginx",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType: "awesome-nginx",
+				},
+			},
+			expected: map[string]string{
+				"kubernetes.io/ingress.class": "awesome-nginx",
 			},
 		},
-		Spec: faasv1.FunctionIngressSpec{
-			IngressType:   wantIngressType,
-			Function:      "nodeinfo",
-			BypassGateway: false,
-			Domain:        "nodeinfo.example.com",
+		{
+			name: "bypass removes rewrite target",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "nginx",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:   "nginx",
+					Function:      "nodeinfo",
+					BypassGateway: true,
+					Domain:        "nodeinfo.example.com",
+				},
+			},
+			excluded: []string{"nginx.ingress.kubernetes.io/rewrite-target"},
+		},
+		{
+			name: "default annotations includes a rewrite-target",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType: "nginx",
+				},
+			},
+			expected: map[string]string{
+				"nginx.ingress.kubernetes.io/rewrite-target": "/function//$1",
+			},
+		},
+		{
+			name: "creates required traefik annotations",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "traefik",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:   "traefik",
+					Function:      "nodeinfo",
+					BypassGateway: false,
+					Domain:        "nodeinfo.example.com",
+				},
+			},
+			expected: map[string]string{
+				"traefik.ingress.kubernetes.io/rewrite-target": "/function/nodeinfo",
+				"traefik.ingress.kubernetes.io/rule-type":      "PathPrefix",
+			},
+		},
+		{
+			name: "creates required skipper annotations",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "skipper",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:   "skipper",
+					Function:      "nodeinfo",
+					BypassGateway: false,
+					Domain:        "nodeinfo.example.com",
+				},
+			},
+			expected: map[string]string{
+				"kubernetes.io/ingress.class": "skipper",
+				"zalando.org/skipper-filter":  `setPath("/function/nodeinfo")`,
+			},
+		},
+		{
+			name: "creates tls issuer annotation",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "nginx",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:   "nginx",
+					Function:      "nodeinfo",
+					BypassGateway: false,
+					Domain:        "nodeinfo.example.com",
+					TLS: &faasv1.FunctionIngressTLS{
+						IssuerRef: faasv1.ObjectReference{
+							Name: "clusterFoo",
+							Kind: "ClusterIssuer",
+						},
+						Enabled: true,
+					},
+				},
+			},
+			expected: map[string]string{
+				"cert-manager.io/cluster-issuer": "clusterFoo",
+			},
+		},
+		{
+			name: "default tls issuer is local",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "nginx",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:   "nginx",
+					Function:      "nodeinfo",
+					BypassGateway: false,
+					Domain:        "nodeinfo.example.com",
+					TLS: &faasv1.FunctionIngressTLS{
+						IssuerRef: faasv1.ObjectReference{
+							Name: "clusterFoo",
+						},
+						Enabled: true,
+					},
+				},
+			},
+			expected: map[string]string{
+				"cert-manager.io/issuer": "clusterFoo",
+			},
 		},
 	}
 
-	result := MakeAnnotations(&ingress)
-	t.Log(result)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := MakeAnnotations(&tc.ingress)
+			for key, value := range tc.expected {
+				found, ok := result[key]
+				if !ok {
+					t.Fatalf("Failed to find expected annotation: %q", key)
+				}
 
-	wantRewriteTarget := "/function/" + ingress.Spec.Function
-	if val, ok := result["traefik.ingress.kubernetes.io/rewrite-target"]; !ok || val != wantRewriteTarget {
-		t.Errorf("Failed to find expected rewrite target annotation. Expected '%s' but got '%s'", wantRewriteTarget, val)
-	}
+				if found != value {
+					t.Fatalf("expected annotation value %q, got %q", value, found)
+				}
+			}
 
-	wantRuleType := "PathPrefix"
-	if val, ok := result["traefik.ingress.kubernetes.io/rule-type"]; !ok || val != wantRuleType {
-		t.Errorf("Failed to find expected rule type annotation. Expected '%s' but got '%s'", wantRuleType, val)
+			for _, key := range tc.excluded {
+				value, ok := result[key]
+				if ok {
+					t.Fatalf("annotations should not include %q, but it was found with value %q", key, value)
+				}
+			}
+		})
 	}
 }
