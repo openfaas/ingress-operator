@@ -16,8 +16,10 @@ import (
 )
 
 // FunctionIngressLister helps list FunctionIngresses.
+// All objects returned here must be treated as read-only.
 type FunctionIngressLister interface {
 	// List lists all FunctionIngresses in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.FunctionIngress, err error)
 	// FunctionIngresses returns an object that can list and get FunctionIngresses.
 	FunctionIngresses(namespace string) FunctionIngressNamespaceLister
@@ -48,10 +50,13 @@ func (s *functionIngressLister) FunctionIngresses(namespace string) FunctionIngr
 }
 
 // FunctionIngressNamespaceLister helps list and get FunctionIngresses.
+// All objects returned here must be treated as read-only.
 type FunctionIngressNamespaceLister interface {
 	// List lists all FunctionIngresses in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.FunctionIngress, err error)
 	// Get retrieves the FunctionIngress from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.FunctionIngress, error)
 	FunctionIngressNamespaceListerExpansion
 }

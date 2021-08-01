@@ -5,6 +5,7 @@
         "appsv",
         "corev",
         "faas",
+        "faasclientset",
         "faasscheme",
         "faasv",
         "handler",
@@ -15,7 +16,10 @@
         "kubeinformers",
         "logtostderr",
         "metav",
+        "netv",
+        "networkingv",
         "sync",
+        "syncer",
         "threadiness",
         "traefik"
     ]
