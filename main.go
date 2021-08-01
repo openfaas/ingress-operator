@@ -14,7 +14,7 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	klog "k8s.io/klog/v2"
+	klog "k8s.io/klog"
 
 	// required for generating code from CRD
 	_ "k8s.io/code-generator/cmd/client-gen/generators"

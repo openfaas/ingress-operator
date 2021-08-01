@@ -9,6 +9,8 @@ Licensed under the MIT license. See LICENSE file in the project root for full li
 package fake
 
 import (
+	"context"
+
 	v1alpha2 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -29,7 +31,7 @@ var functioningressesResource = schema.GroupVersionResource{Group: "openfaas.com
 var functioningressesKind = schema.GroupVersionKind{Group: "openfaas.com", Version: "v1alpha2", Kind: "FunctionIngress"}
 
 // Get takes name of the functionIngress, and returns the corresponding functionIngress object, and an error if there is any.
-func (c *FakeFunctionIngresses) Get(name string, options v1.GetOptions) (result *v1alpha2.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.FunctionIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(functioningressesResource, c.ns, name), &v1alpha2.FunctionIngress{})
 
@@ -40,7 +42,7 @@ func (c *FakeFunctionIngresses) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of FunctionIngresses that match those selectors.
-func (c *FakeFunctionIngresses) List(opts v1.ListOptions) (result *v1alpha2.FunctionIngressList, err error) {
+func (c *FakeFunctionIngresses) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.FunctionIngressList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(functioningressesResource, functioningressesKind, c.ns, opts), &v1alpha2.FunctionIngressList{})
 
@@ -62,14 +64,14 @@ func (c *FakeFunctionIngresses) List(opts v1.ListOptions) (result *v1alpha2.Func
 }
 
 // Watch returns a watch.Interface that watches the requested functionIngresses.
-func (c *FakeFunctionIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFunctionIngresses) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(functioningressesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a functionIngress and creates it.  Returns the server's representation of the functionIngress, and an error, if there is any.
-func (c *FakeFunctionIngresses) Create(functionIngress *v1alpha2.FunctionIngress) (result *v1alpha2.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Create(ctx context.Context, functionIngress *v1alpha2.FunctionIngress, opts v1.CreateOptions) (result *v1alpha2.FunctionIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(functioningressesResource, c.ns, functionIngress), &v1alpha2.FunctionIngress{})
 
@@ -80,7 +82,7 @@ func (c *FakeFunctionIngresses) Create(functionIngress *v1alpha2.FunctionIngress
 }
 
 // Update takes the representation of a functionIngress and updates it. Returns the server's representation of the functionIngress, and an error, if there is any.
-func (c *FakeFunctionIngresses) Update(functionIngress *v1alpha2.FunctionIngress) (result *v1alpha2.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Update(ctx context.Context, functionIngress *v1alpha2.FunctionIngress, opts v1.UpdateOptions) (result *v1alpha2.FunctionIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(functioningressesResource, c.ns, functionIngress), &v1alpha2.FunctionIngress{})
 
@@ -91,7 +93,7 @@ func (c *FakeFunctionIngresses) Update(functionIngress *v1alpha2.FunctionIngress
 }
 
 // Delete takes name of the functionIngress and deletes it. Returns an error if one occurs.
-func (c *FakeFunctionIngresses) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFunctionIngresses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(functioningressesResource, c.ns, name), &v1alpha2.FunctionIngress{})
 
@@ -99,15 +101,15 @@ func (c *FakeFunctionIngresses) Delete(name string, options *v1.DeleteOptions) e
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFunctionIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(functioningressesResource, c.ns, listOptions)
+func (c *FakeFunctionIngresses) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(functioningressesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.FunctionIngressList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched functionIngress.
-func (c *FakeFunctionIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.FunctionIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(functioningressesResource, c.ns, name, pt, data, subresources...), &v1alpha2.FunctionIngress{})
 

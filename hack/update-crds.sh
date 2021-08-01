@@ -1,12 +1,15 @@
 #!/bin/bash
 
-export controllergen="$GOPATH/bin/controller-gen"
-export PKG=sigs.k8s.io/controller-tools/cmd/controller-gen
+set -e
+set -o pipefail
+
+controllergen="$(go env GOBIN)/controller-gen"
+PKG=sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
 
 if [ ! -e "$controllergen" ]
 then
 echo "Getting $PKG"
-    GO111MODULE=off go get $PKG
+    go install $PKG
 fi
 
 echo "using $controllergen"

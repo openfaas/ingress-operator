@@ -5,6 +5,10 @@ TAG?=latest
 # but for now it's still experimental feature so we need to enable that
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
+
+CODEGEN_VERSION=v0.21.3
+CODEGEN_PKG=$(shell echo `go env GOPATH`"/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}")
+
 build:
 	docker build -t ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
 	docker build --build-arg OPTS="GOARCH=arm64" -t ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
@@ -25,11 +29,17 @@ manifest:
 	docker manifest push -p ghcr.io/openfaas/ingress-operator:$(TAG)
 
 test:
-	go test -mod=vendor -v ./...
+	go test -v ./...
 
-verify-codegen:
-	go get -u -d k8s.io/code-generator@v0.19.0
+
+${CODEGEN_PKG}:
+	go get k8s.io/code-generator@${CODEGEN_VERSION}
+
+verify-codegen: ${CODEGEN_PKG}
 	./hack/verify-codegen.sh
+
+update-codegen: ${CODEGEN_PKG}
+	./hack/update-codegen.sh
 
 charts:
 	cd chart && helm package ingress-operator/

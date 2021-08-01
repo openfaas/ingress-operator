@@ -9,6 +9,7 @@ Licensed under the MIT license. See LICENSE file in the project root for full li
 package v1alpha2
 
 import (
+	"context"
 	time "time"
 
 	openfaasv1alpha2 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
@@ -51,13 +52,13 @@ func NewFilteredFunctionIngressInformer(client versioned.Interface, namespace st
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenfaasV1alpha2().FunctionIngresses(namespace).List(options)
+				return client.OpenfaasV1alpha2().FunctionIngresses(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenfaasV1alpha2().FunctionIngresses(namespace).Watch(options)
+				return client.OpenfaasV1alpha2().FunctionIngresses(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&openfaasv1alpha2.FunctionIngress{},

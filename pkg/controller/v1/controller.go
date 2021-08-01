@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	klog "k8s.io/klog/v2"
+	klog "k8s.io/klog"
 )
 
 // SyncHandler is the controller implementation for Function resources
