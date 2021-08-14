@@ -5,9 +5,19 @@ TAG?=latest
 # but for now it's still experimental feature so we need to enable that
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
+TOOLS_DIR := .tools
 
-CODEGEN_VERSION=v0.21.3
-CODEGEN_PKG=$(shell echo `go env GOPATH`"/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}")
+GOPATH := $(shell go env GOPATH)
+CODEGEN_VERSION := $(shell hack/print-codegen-version.sh)
+CODEGEN_PKG := $(GOPATH)/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}
+
+$(TOOLS_DIR)/code-generator.mod: go.mod
+	@echo "syncing code-generator tooling version"
+	@cd $(TOOLS_DIR) && go mod edit -require "k8s.io/code-generator@${CODEGEN_VERSION}"
+
+${CODEGEN_PKG}: $(TOOLS_DIR)/code-generator.mod
+	@echo "(re)installing k8s.io/code-generator-${CODEGEN_VERSION}"
+	@cd $(TOOLS_DIR) && go mod download -modfile=code-generator.mod
 
 build:
 	docker build -t ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
@@ -30,10 +40,6 @@ manifest:
 
 test:
 	go test -v ./...
-
-
-${CODEGEN_PKG}:
-	go get k8s.io/code-generator@${CODEGEN_VERSION}
 
 verify-codegen: ${CODEGEN_PKG}
 	./hack/verify-codegen.sh
