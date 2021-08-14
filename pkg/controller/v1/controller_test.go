@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	v1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
@@ -35,10 +35,10 @@ func Test_makeRules_Nginx_RootPath_HasRegex(t *testing.T) {
 		t.Errorf("want path %s, but got %s", wantPath, gotPath)
 	}
 
-	gotPort := rules[0].HTTP.Paths[0].Backend.ServicePort
+	gotPort := rules[0].HTTP.Paths[0].Backend.Service.Port.Number
 
-	if gotPort.IntValue() != controller.OpenfaasWorkloadPort {
-		t.Errorf("want port %d, but got %d", controller.OpenfaasWorkloadPort, gotPort.IntValue())
+	if gotPort != controller.OpenfaasWorkloadPort {
+		t.Errorf("want port %d, but got %d", controller.OpenfaasWorkloadPort, gotPort)
 	}
 }
 
@@ -70,7 +70,7 @@ func Test_makeRules_Nginx_RootPath_IsRootWithBypassMode(t *testing.T) {
 		t.Errorf("want path %s, but got %s", wantPath, gotPath)
 	}
 
-	gotHost := rules[0].HTTP.Paths[0].Backend.ServiceName
+	gotHost := rules[0].HTTP.Paths[0].Backend.Service.Name
 
 	if gotHost != wantFunction {
 		t.Errorf("want host to be function: %s, but got %s", wantFunction, gotHost)
@@ -157,12 +157,12 @@ func Test_makTLS(t *testing.T) {
 	cases := []struct {
 		name     string
 		fni      *faasv1.FunctionIngress
-		expected []v1beta1.IngressTLS
+		expected []netv1.IngressTLS
 	}{
 		{
 			name:     "tls disabled results in empty tls config",
 			fni:      &faasv1.FunctionIngress{Spec: faasv1.FunctionIngressSpec{TLS: &faasv1.FunctionIngressTLS{Enabled: false}}},
-			expected: []v1beta1.IngressTLS{},
+			expected: []netv1.IngressTLS{},
 		},
 		{
 			name: "tls enabled creates TLS object with correct host and secret with matching the host",
@@ -178,7 +178,7 @@ func Test_makTLS(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1beta1.IngressTLS{
+			expected: []netv1.IngressTLS{
 				{
 					SecretName: "foo.example.com-cert",
 					Hosts: []string{

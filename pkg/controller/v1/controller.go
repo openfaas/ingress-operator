@@ -14,14 +14,13 @@ import (
 	listers "github.com/openfaas-incubator/ingress-operator/pkg/client/listers/openfaas/v1alpha2"
 	"github.com/openfaas-incubator/ingress-operator/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	networkingv1beta1 "k8s.io/client-go/listers/networking/v1beta1"
+	networkingv1 "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -35,7 +34,7 @@ type SyncHandler struct {
 
 	functionsLister listers.FunctionIngressLister
 
-	ingressLister networkingv1beta1.IngressLister
+	ingressLister networkingv1.IngressLister
 
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
@@ -52,7 +51,7 @@ func NewController(
 
 	recorder := controller.EventRecorder(kubeclientset)
 	functionIngress := functionIngressFactory.Openfaas().V1alpha2().FunctionIngresses()
-	ingressInformer := kubeInformerFactory.Networking().V1beta1().Ingresses()
+	ingressInformer := kubeInformerFactory.Networking().V1().Ingresses()
 	ingressLister := ingressInformer.Lister()
 
 	syncer := SyncHandler{
@@ -68,7 +67,6 @@ func NewController(
 		Workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "FunctionIngresses"),
 		SyncHandler:     syncer.handler,
 	}
-
 	klog.Info("Setting up event handlers")
 	ctrl.SetupEventHandlers(functionIngress, kubeInformerFactory)
 	ingressInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -78,10 +76,10 @@ func NewController(
 	return ctrl
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
+// handler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the fni resource
 // with the current status of the resource.
-func (c *SyncHandler) handler(ctx context.Context, key string) error {
+func (h SyncHandler) handler(ctx context.Context, key string) error {
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -90,7 +88,7 @@ func (c *SyncHandler) handler(ctx context.Context, key string) error {
 	}
 
 	// Get the fni resource with this namespace/name
-	fni, err := c.functionsLister.FunctionIngresses(namespace).Get(name)
+	fni, err := h.functionsLister.FunctionIngresses(namespace).Get(name)
 	if err != nil {
 		// The fni resource may no longer exist, in which case we stop processing.
 		if errors.IsNotFound(err) {
@@ -104,7 +102,7 @@ func (c *SyncHandler) handler(ctx context.Context, key string) error {
 	fniName := fni.ObjectMeta.Name
 	klog.Infof("FunctionIngress name: %v", fniName)
 
-	ingresses := c.ingressLister.Ingresses(namespace)
+	ingresses := h.ingressLister.Ingresses(namespace)
 	ingress, getIngressErr := ingresses.Get(fni.Name)
 	createIngress := errors.IsNotFound(getIngressErr)
 	if !createIngress && ingress == nil {
@@ -118,25 +116,25 @@ func (c *SyncHandler) handler(ctx context.Context, key string) error {
 		rules := makeRules(fni)
 		tls := makeTLS(fni)
 
-		newIngress := v1beta1.Ingress{
+		newIngress := netv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            name,
 				Namespace:       namespace,
 				Annotations:     controller.MakeAnnotations(fni),
 				OwnerReferences: controller.MakeOwnerRef(fni),
 			},
-			Spec: v1beta1.IngressSpec{
+			Spec: netv1.IngressSpec{
 				Rules: rules,
 				TLS:   tls,
 			},
 		}
 
-		_, createErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Create(ctx, &newIngress, metav1.CreateOptions{})
+		_, createErr := h.kubeclientset.NetworkingV1().Ingresses(namespace).Create(ctx, &newIngress, metav1.CreateOptions{})
 		if createErr != nil {
 			klog.Errorf("cannot create ingress: %v in %v, error: %v", name, namespace, createErr.Error())
 		}
 
-		c.recorder.Event(fni, corev1.EventTypeNormal, controller.SuccessSynced, controller.MessageResourceSynced)
+		h.recorder.Event(fni, corev1.EventTypeNormal, controller.SuccessSynced, controller.MessageResourceSynced)
 		return nil
 	}
 
@@ -169,7 +167,7 @@ func (c *SyncHandler) handler(ctx context.Context, key string) error {
 		updated.Spec.Rules = rules
 		updated.Spec.TLS = makeTLS(fni)
 
-		_, updateErr := c.kubeclientset.NetworkingV1beta1().Ingresses(namespace).Update(ctx, updated, metav1.UpdateOptions{})
+		_, updateErr := h.kubeclientset.NetworkingV1().Ingresses(namespace).Update(ctx, updated, metav1.UpdateOptions{})
 		if updateErr != nil {
 			klog.Errorf("error updating ingress: %v", updateErr)
 			return updateErr
@@ -183,11 +181,11 @@ func (c *SyncHandler) handler(ctx context.Context, key string) error {
 		return fmt.Errorf("transient error: %v", err)
 	}
 
-	c.recorder.Event(fni, corev1.EventTypeNormal, controller.SuccessSynced, controller.MessageResourceSynced)
+	h.recorder.Event(fni, corev1.EventTypeNormal, controller.SuccessSynced, controller.MessageResourceSynced)
 	return nil
 }
 
-func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
+func makeRules(fni *faasv1.FunctionIngress) []netv1.IngressRule {
 	path := "/(.*)"
 
 	if fni.Spec.BypassGateway {
@@ -212,18 +210,23 @@ func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 		serviceHost = fni.Spec.Function
 	}
 
-	return []v1beta1.IngressRule{
+	pathType := netv1.PathTypeImplementationSpecific
+
+	return []netv1.IngressRule{
 		{
 			Host: fni.Spec.Domain,
-			IngressRuleValue: v1beta1.IngressRuleValue{
-				HTTP: &v1beta1.HTTPIngressRuleValue{
-					Paths: []v1beta1.HTTPIngressPath{
+			IngressRuleValue: netv1.IngressRuleValue{
+				HTTP: &netv1.HTTPIngressRuleValue{
+					Paths: []netv1.HTTPIngressPath{
 						{
-							Path: path,
-							Backend: v1beta1.IngressBackend{
-								ServiceName: serviceHost,
-								ServicePort: intstr.IntOrString{
-									IntVal: controller.OpenfaasWorkloadPort,
+							Path:     path,
+							PathType: &pathType,
+							Backend: netv1.IngressBackend{
+								Service: &netv1.IngressServiceBackend{
+									Name: serviceHost,
+									Port: netv1.ServiceBackendPort{
+										Number: controller.OpenfaasWorkloadPort,
+									},
 								},
 							},
 						},
@@ -234,12 +237,12 @@ func makeRules(fni *faasv1.FunctionIngress) []v1beta1.IngressRule {
 	}
 }
 
-func makeTLS(fni *faasv1.FunctionIngress) []v1beta1.IngressTLS {
+func makeTLS(fni *faasv1.FunctionIngress) []netv1.IngressTLS {
 	if !fni.Spec.UseTLS() {
-		return []v1beta1.IngressTLS{}
+		return []netv1.IngressTLS{}
 	}
 
-	return []v1beta1.IngressTLS{
+	return []netv1.IngressTLS{
 		{
 			SecretName: fni.Spec.Domain + "-cert",
 			Hosts: []string{
