@@ -8,7 +8,7 @@ import (
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
 	informers "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions"
 	controllerv1 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v1"
-	controllerv2 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v2"
+	controllerv1beta1 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v1beta1"
 	"github.com/openfaas-incubator/ingress-operator/pkg/signals"
 	"github.com/openfaas-incubator/ingress-operator/pkg/version"
 	kubeinformers "k8s.io/client-go/informers"
@@ -92,14 +92,14 @@ func main() {
 
 	var ctrl controller
 	if capabilities.Has("extensions/v1beta1") {
-		ctrl = controllerv1.NewController(
+		ctrl = controllerv1beta1.NewController(
 			kubeClient,
 			faasClient,
 			kubeInformerFactory,
 			faasInformerFactory,
 		)
 	} else {
-		ctrl = controllerv2.NewController(
+		ctrl = controllerv1.NewController(
 			kubeClient,
 			faasClient,
 			kubeInformerFactory,
