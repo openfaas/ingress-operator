@@ -3,7 +3,7 @@ IngressOperator for OpenFaaS
 
 Get custom domains and TLS for your OpenFaaS Functions through the FunctionIngress CRD
 
-[![Build Status](https://travis-ci.com/openfaas-incubator/ingress-operator.svg?branch=master)](https://travis-ci.com/openfaas-incubator/ingress-operator)
+[![build](https://github.com/openfaas/ingress-operator/actions/workflows/build.yaml/badge.svg)](https://github.com/openfaas/ingress-operator/actions/workflows/build.yaml)
 [![OpenFaaS](https://img.shields.io/badge/openfaas-serverless-blue.svg)](https://www.openfaas.com)
 
 ## Why is this needed?
