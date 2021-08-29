@@ -20,3 +20,4 @@ ingress-operator
 config
 password.txt
 faas-netes/**
+test.yaml

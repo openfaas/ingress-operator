@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 	"time"
 
 	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
@@ -85,10 +86,12 @@ func main() {
 	faasInformerFactory := informers.
 		NewSharedInformerFactoryWithOptions(faasClient, defaultResync, faasInformerOpt)
 
-	capabilities, err := getCapabilities(kubeClient)
+	capabilities, err := getPreferredAvailableAPIs(kubeClient, "Ingress")
 	if err != nil {
 		klog.Fatalf("Error retrieving Kubernetes cluster capabilities: %s", err.Error())
 	}
+
+	klog.Infof("cluster supports ingress in: %s", capabilities)
 
 	var ctrl controller
 	if capabilities.Has("extensions/v1beta1") {
@@ -139,6 +142,15 @@ func (c Capabilities) Has(wanted string) bool {
 	return c[wanted]
 }
 
+func (c Capabilities) String() string {
+	keys := make([]string, 0, len(c))
+	for k := range c {
+		keys = append(keys, k)
+	}
+	return strings.Join(keys, ", ")
+}
+
+// getCapabilities returns the list of available api groups in the cluster.
 func getCapabilities(client kubernetes.Interface) (Capabilities, error) {
 
 	groupList, err := client.Discovery().ServerGroups()
@@ -150,6 +162,35 @@ func getCapabilities(client kubernetes.Interface) (Capabilities, error) {
 	for _, g := range groupList.Groups {
 		for _, gv := range g.Versions {
 			caps[gv.GroupVersion] = true
+		}
+	}
+
+	return caps, nil
+}
+
+// getPreferredAvailableAPIs queries the cluster for the preferred resources information and returns a Capabilities
+// instance containing those api groups that support the specified kind.
+//
+// kind should be the title case singular name of the kind. For example, "Ingress" is the kind for a resource "ingress".
+func getPreferredAvailableAPIs(client kubernetes.Interface, kind string) (Capabilities, error) {
+	discoveryclient := client.Discovery()
+	lists, err := discoveryclient.ServerPreferredResources()
+	if err != nil {
+		return nil, err
+	}
+
+	caps := Capabilities{}
+	for _, list := range lists {
+		if len(list.APIResources) == 0 {
+			continue
+		}
+		for _, resource := range list.APIResources {
+			if len(resource.Verbs) == 0 {
+				continue
+			}
+			if resource.Kind == kind {
+				caps[list.GroupVersion] = true
+			}
 		}
 	}
 
