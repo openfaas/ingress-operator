@@ -21,3 +21,4 @@ config
 password.txt
 faas-netes/**
 test.yaml
+cluster.yaml

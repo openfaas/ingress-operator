@@ -43,7 +43,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Pull Request test image
-        uses: contiamo/retag-push@main
+        uses: contiamo/retag-push@v1.0.0
         if: ${{ github.event_name == 'pull_request' }}
         with:
           source: ${{ env.IMAGE_PREFIX }}:${{ github.sha }}
