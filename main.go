@@ -94,15 +94,17 @@ func main() {
 	klog.Infof("cluster supports ingress in: %s", capabilities)
 
 	var ctrl controller
-	if capabilities.Has("extensions/v1beta1") {
-		ctrl = controllerv1beta1.NewController(
+	// prefer v1, if it is available, this removes any deprecation warnings
+	if capabilities.Has("networking.k8s.io/v1") {
+		ctrl = controllerv1.NewController(
 			kubeClient,
 			faasClient,
 			kubeInformerFactory,
 			faasInformerFactory,
 		)
 	} else {
-		ctrl = controllerv1.NewController(
+		// use v1beta1 by default
+		ctrl = controllerv1beta1.NewController(
 			kubeClient,
 			faasClient,
 			kubeInformerFactory,
