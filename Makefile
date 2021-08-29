@@ -1,5 +1,11 @@
-.PHONY: build push manifest test verify-codegen charts
 TAG?=latest
+
+.GIT_COMMIT=$(shell git rev-parse HEAD)
+.GIT_VERSION=$(shell git describe --tags 2>/dev/null || echo "$(.GIT_COMMIT)")
+.GIT_UNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
+ifneq ($(.GIT_UNTRACKEDCHANGES),)
+	.GIT_COMMIT := $(.GIT_COMMIT)-dirty
+endif
 
 # docker manifest command will work with Docker CLI 18.03 or newer
 # but for now it's still experimental feature so we need to enable that
@@ -11,6 +17,13 @@ GOPATH := $(shell go env GOPATH)
 CODEGEN_VERSION := $(shell hack/print-codegen-version.sh)
 CODEGEN_PKG := $(GOPATH)/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}
 
+OWNER?=openfaas
+REPOSITORY?="ghcr.io/$(OWNER)"
+NAME := ingress-operator
+
+ARCH?=linux/amd64
+MULTIARCH?=linux/amd64,linux/arm/v7,linux/arm64
+
 $(TOOLS_DIR)/code-generator.mod: go.mod
 	@echo "syncing code-generator tooling version"
 	@cd $(TOOLS_DIR) && go mod edit -require "k8s.io/code-generator@${CODEGEN_VERSION}"
@@ -19,34 +32,63 @@ ${CODEGEN_PKG}: $(TOOLS_DIR)/code-generator.mod
 	@echo "(re)installing k8s.io/code-generator-${CODEGEN_VERSION}"
 	@cd $(TOOLS_DIR) && go mod download -modfile=code-generator.mod
 
+.PHONY: build
 build:
-	docker build -t ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 . -f Dockerfile
-	docker build --build-arg OPTS="GOARCH=arm64" -t ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 . -f Dockerfile
-	docker build --build-arg OPTS="GOARCH=arm GOARM=6" -t ghcr.io/openfaas/ingress-operator:$(TAG)-armhf . -f Dockerfile
+	@echo "building  $(REPOSITORY)/$(NAME):$(TAG)"
+	@docker build \
+	--build-arg VERSION=$(.GIT_VERSION) \
+	--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
+	-t  $(REPOSITORY)/$(NAME):$(TAG) .
 
-push:
-	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-amd64
-	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-arm64
-	docker push ghcr.io/openfaas/ingress-operator:$(TAG)-armhf
+.PHONY: build-buildx
+build-buildx:
+	@echo  $(REPOSITORY)/$(NAME):$(TAG) && \
+	docker buildx create --use --name=multiarch --node=multiarch && \
+	docker buildx build \
+		--push \
+		--platform $(ARCH) \
+		--build-arg VERSION=$(.GIT_VERSION) \
+		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
+		--tag  $(REPOSITORY)/$(NAME):$(TAG) \
+		.
 
-manifest:
-	docker manifest create --amend ghcr.io/openfaas/ingress-operator:$(TAG) \
-		ghcr.io/openfaas/ingress-operator:$(TAG)-amd64 \
-		ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 \
-		ghcr.io/openfaas/ingress-operator:$(TAG)-armhf
-	docker manifest annotate ghcr.io/openfaas/ingress-operator:$(TAG) ghcr.io/openfaas/ingress-operator:$(TAG)-arm64 --os linux --arch arm64
-	docker manifest annotate ghcr.io/openfaas/ingress-operator:$(TAG) ghcr.io/openfaas/ingress-operator:$(TAG)-armhf --os linux --arch arm --variant v6
-	docker manifest push -p ghcr.io/openfaas/ingress-operator:$(TAG)
+.PHONY: build-buildx-all
+build-buildx-all:
+	@echo  "build $(REPOSITORY)/$(NAME):$(TAG) for $(MULTIARCH)"
+	@docker buildx create --use --name=multiarch --node=multiarch && \
+	docker buildx build \
+		--platform $(MULTIARCH) \
+		--output "type=image,push=false" \
+		--build-arg VERSION=$(.GIT_VERSION) \
+		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
+		--tag $(REPOSITORY)/$(NAME):$(TAG) \
+		.
 
+.PHONY: publish-buildx-all
+publish-buildx-all:
+	@echo  "build and publish $(REPOSITORY)/$(NAME):$(TAG) for $(MULTIARCH)"
+	@docker buildx create --use --name=multiarch --node=multiarch && \
+	docker buildx build \
+		--platform $(MULTIARCH) \
+		--push=true \
+		--build-arg VERSION=$(.GIT_VERSION) \
+		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
+		--tag $(REPOSITORY)/$(NAME):$(TAG) \
+		.
+
+.PHONY: test
 test:
 	go test -v ./...
 
+.PHONY: verify-codegen
 verify-codegen: ${CODEGEN_PKG}
 	./hack/verify-codegen.sh
 
+.PHONY: update-codegen
 update-codegen: ${CODEGEN_PKG}
 	./hack/update-codegen.sh
 
+.PHONY: charts
 charts:
 	cd chart && helm package ingress-operator/
 	mv chart/*.tgz docs/

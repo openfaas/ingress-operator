@@ -6,9 +6,14 @@ ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
+ARG GIT_COMMIT
+ARG VERSION
+
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
 ENV GOFLAGS=-mod=vendor
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
 
 COPY --from=license-check /license-check /usr/bin/
 
@@ -22,9 +27,7 @@ ARG OPTS
 
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
 RUN go test -mod=vendor -v ./...
-RUN VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') && \
-  GIT_COMMIT=$(git rev-list -1 HEAD) && \
-  env ${OPTS} GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=${CGO_ENABLED} GOOS=linux go build -mod=vendor -ldflags "-s -w \
+RUN go build -mod=vendor -ldflags "-s -w \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.Release=${VERSION} \
   -X github.com/openfaas-incubator/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
   -a -installsuffix cgo -o ingress-operator . && \
