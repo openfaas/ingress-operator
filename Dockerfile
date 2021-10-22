@@ -41,6 +41,8 @@ RUN go build -mod=vendor -ldflags "-s -w \
 
 FROM scratch
 
+LABEL org.opencontainers.image.source=https://github.com/openfaas/ingress-operator
+
 COPY --from=builder /etc/passwd /etc/group /etc/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder --chown=app:app /scratch-tmp /tmp/
