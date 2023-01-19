@@ -1,5 +1,5 @@
 /*
-Copyright 2019 OpenFaaS Authors
+Copyright 2019-2021 OpenFaaS Authors
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -11,7 +11,7 @@ package internalinterfaces
 import (
 	time "time"
 
-	versioned "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
+	versioned "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"

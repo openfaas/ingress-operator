@@ -1,5 +1,5 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} teamserverless/license-check:0.3.9 as license-check
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.16 as builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/openfaas/license-check:0.4.1 as license-check
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19 as builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -17,8 +17,8 @@ ENV GOARCH=${TARGETARCH}
 
 COPY --from=license-check /license-check /usr/bin/
 
-RUN mkdir -p /go/src/github.com/openfaas-incubator/ingress-operator
-WORKDIR /go/src/github.com/openfaas-incubator/ingress-operator
+RUN mkdir -p /go/src/github.com/openfaas/ingress-operator
+WORKDIR /go/src/github.com/openfaas/ingress-operator
 
 COPY . .
 
@@ -28,8 +28,8 @@ ARG OPTS
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
 RUN go test -mod=vendor -v ./...
 RUN go build -mod=vendor -ldflags "-s -w \
-  -X github.com/openfaas-incubator/ingress-operator/pkg/version.Release=${VERSION} \
-  -X github.com/openfaas-incubator/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
+  -X github.com/openfaas/ingress-operator/pkg/version.Release=${VERSION} \
+  -X github.com/openfaas/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
   -a -installsuffix cgo -o ingress-operator . && \
   addgroup --system app && \
   adduser --system --ingroup app app && \
@@ -46,7 +46,7 @@ LABEL org.opencontainers.image.source=https://github.com/openfaas/ingress-operat
 COPY --from=builder /etc/passwd /etc/group /etc/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder --chown=app:app /scratch-tmp /tmp/
-COPY --from=builder /go/src/github.com/openfaas-incubator/ingress-operator/ingress-operator .
+COPY --from=builder /go/src/github.com/openfaas/ingress-operator/ingress-operator .
 
 USER app
 

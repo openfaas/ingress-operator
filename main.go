@@ -2,18 +2,20 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
-	informers "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions"
-	controllerv1 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v1"
-	controllerv1beta1 "github.com/openfaas-incubator/ingress-operator/pkg/controller/v1beta1"
-	"github.com/openfaas-incubator/ingress-operator/pkg/signals"
-	"github.com/openfaas-incubator/ingress-operator/pkg/version"
+	clientset "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
+	informers "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions"
+	controllerv1 "github.com/openfaas/ingress-operator/pkg/controller/v1"
+	controllerv1beta1 "github.com/openfaas/ingress-operator/pkg/controller/v1beta1"
+	"github.com/openfaas/ingress-operator/pkg/signals"
+	"github.com/openfaas/ingress-operator/pkg/version"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	klog "k8s.io/klog"
 
@@ -36,11 +38,11 @@ var pullPolicyOptions = map[string]bool{
 }
 
 func init() {
+	klog.InitFlags(nil)
+
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
-	// TODO: remove
-	flag.Bool("logtostderr", false, "logtostderr legacy flag")
 }
 
 func main() {
@@ -56,7 +58,7 @@ func main() {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
-	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	cfg, err := getClientCmdConfig(masterURL, kubeconfig)
 	if err != nil {
 		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
@@ -197,4 +199,23 @@ func getPreferredAvailableAPIs(client kubernetes.Interface, kind string) (Capabi
 	}
 
 	return caps, nil
+}
+
+func getClientCmdConfig(masterURL, kubeconfig string) (*restclient.Config, error) {
+
+	var err error
+
+	var cfg *restclient.Config
+	if len(kubeconfig) == 0 {
+		cfg, err = restclient.InClusterConfig()
+		if err != nil {
+			if _, statErr := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token"); os.IsNotExist(statErr) {
+				err = fmt.Errorf("set the -kubeconfig flag, if running outside of a cluster")
+			}
+		}
+	} else {
+		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	}
+
+	return cfg, err
 }

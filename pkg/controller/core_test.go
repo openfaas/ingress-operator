@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
+	faasv1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
 )
 
 func TestMakeAnnotations(t *testing.T) {

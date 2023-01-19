@@ -7,8 +7,8 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
-	"github.com/openfaas-incubator/ingress-operator/pkg/controller"
+	faasv1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
+	"github.com/openfaas/ingress-operator/pkg/controller"
 )
 
 func Test_makeRules_Nginx_RootPath_HasRegex(t *testing.T) {
