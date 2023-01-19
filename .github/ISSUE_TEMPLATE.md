@@ -8,12 +8,9 @@
 <!--- If describing a bug, tell us what happens instead of the expected behavior -->
 <!--- If suggesting a change/improvement, explain the difference from current behavior -->
 
-## Are you a GitHub Sponsor (Yes/No?)
-<!--- Given this request for help, how are you supporting the project? -->
+## Who is this for? What company will benefit from the changes?
 
-Check at: https://github.com/sponsors/openfaas
-- [ ] Yes
-- [ ] No
+<!--- This must be filled out, or the issue will be closed. -->
 
 ## List All Possible Solutions and Workarounds
 <!--- Suggest a fix/reason for the bug, or ideas how to implement  -->
