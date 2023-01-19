@@ -11,44 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
-      - name: Set Username/Repo and ImagePrefix as ENV vars
-        run: |
-          echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
-
-      - name: Build x86_64 container into library
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          outputs: "type=docker,push=false"
-          build-args: |
-            VERSION=latest-dev
-            GIT_COMMIT=${{ github.sha }}
-          platforms: linux/amd64
-          tags: |
-            ${{ env.IMAGE_PREFIX }}:${{ github.sha }}
-
-  build-multi-arch:
-    # run in parallel to build because multi-arch is slow
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Set Username/Repo and ImagePrefix as ENV vars
-        run: |
-          echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
 
       - name: Build multi-arch containers for validation only
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./Dockerfile
@@ -58,4 +32,5 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           tags: |
-            ${{ env.IMAGE_PREFIX }}:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER }}/ingress-operator:${{ github.sha }}
+
