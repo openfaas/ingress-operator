@@ -8,11 +8,11 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
-	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
-	informers "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions"
-	listers "github.com/openfaas-incubator/ingress-operator/pkg/client/listers/openfaas/v1alpha2"
-	"github.com/openfaas-incubator/ingress-operator/pkg/controller"
+	faasv1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
+	clientset "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
+	informers "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions"
+	listers "github.com/openfaas/ingress-operator/pkg/client/listers/openfaas/v1"
+	"github.com/openfaas/ingress-operator/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -50,7 +50,7 @@ func NewController(
 ) controller.BaseController {
 
 	recorder := controller.EventRecorder(kubeclientset)
-	functionIngress := functionIngressFactory.Openfaas().V1alpha2().FunctionIngresses()
+	functionIngress := functionIngressFactory.Openfaas().V1().FunctionIngresses()
 	ingressInformer := kubeInformerFactory.Networking().V1().Ingresses()
 	ingressLister := ingressInformer.Lister()
 

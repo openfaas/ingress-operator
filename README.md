@@ -34,7 +34,7 @@ This is an Operator / controller to build Kubernetes `Ingress` and JetStack `Cer
 The following example would expose the `nodeinfo` function from the store as a URL: `nodeinfo.myfaas.club`.
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo
@@ -221,7 +221,7 @@ spec:
 * If using `traefik` instead of `nginx`, then edit `class: nginx` and replace it as necessary.
   **Recommended version is v1.7.21 or above**, previous versions will incorrectly route requests
   to your function (with duplicated path, see
-  [related issue](https://github.com/openfaas-incubator/ingress-operator/issues/30)).
+  [related issue](https://github.com/openfaas/ingress-operator/issues/30)).
 
 Save as `letsencrypt-issuer.yaml` then run `kubectl apply -f letsencrypt-issuer.yaml`.
 
@@ -241,7 +241,7 @@ Example:
 This example adds one of the required annotations for basic auth as defined in the [ingress-nginx docs](https://kubernetes.github.io/ingress-nginx/examples/auth/basic/).
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo
@@ -259,7 +259,7 @@ spec:
 This example exposes the nodeinfo function for asynchronous invocation by rewriting its path to the gateway URL including the `/async-function` prefix instead of the usual `/function/`.
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo
@@ -279,7 +279,7 @@ The IngressOperator can be used to create Ingress records that bypass the OpenFa
 Example:
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo
@@ -325,7 +325,7 @@ go build && ./ingress-operator -kubeconfig=./config
 ### With TLS
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo-tls
@@ -349,7 +349,7 @@ spec:
 ### Without TLS
 
 ```yaml
-apiVersion: openfaas.com/v1alpha2
+apiVersion: openfaas.com/v1
 kind: FunctionIngress
 metadata:
   name: nodeinfo

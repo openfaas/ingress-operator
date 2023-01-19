@@ -1,5 +1,5 @@
 /*
-Copyright 2019 OpenFaaS Authors
+Copyright 2019-2021 OpenFaaS Authors
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -9,9 +9,9 @@ Licensed under the MIT license. See LICENSE file in the project root for full li
 package fake
 
 import (
-	clientset "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
-	openfaasv1alpha2 "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/typed/openfaas/v1alpha2"
-	fakeopenfaasv1alpha2 "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/typed/openfaas/v1alpha2/fake"
+	clientset "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
+	openfaasv1 "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned/typed/openfaas/v1"
+	fakeopenfaasv1 "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned/typed/openfaas/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -64,9 +64,12 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 	return c.tracker
 }
 
-var _ clientset.Interface = &Clientset{}
+var (
+	_ clientset.Interface = &Clientset{}
+	_ testing.FakeClient  = &Clientset{}
+)
 
-// OpenfaasV1alpha2 retrieves the OpenfaasV1alpha2Client
-func (c *Clientset) OpenfaasV1alpha2() openfaasv1alpha2.OpenfaasV1alpha2Interface {
-	return &fakeopenfaasv1alpha2.FakeOpenfaasV1alpha2{Fake: &c.Fake}
+// OpenfaasV1 retrieves the OpenfaasV1Client
+func (c *Clientset) OpenfaasV1() openfaasv1.OpenfaasV1Interface {
+	return &fakeopenfaasv1.FakeOpenfaasV1{Fake: &c.Fake}
 }

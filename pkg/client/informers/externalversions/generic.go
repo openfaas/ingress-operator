@@ -1,5 +1,5 @@
 /*
-Copyright 2019 OpenFaaS Authors
+Copyright 2019-2021 OpenFaaS Authors
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -11,7 +11,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha2 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
+	v1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -42,9 +42,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=openfaas.com, Version=v1alpha2
-	case v1alpha2.SchemeGroupVersion.WithResource("functioningresses"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openfaas().V1alpha2().FunctionIngresses().Informer()}, nil
+	// Group=openfaas.com, Version=v1
+	case v1.SchemeGroupVersion.WithResource("functioningresses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openfaas().V1().FunctionIngresses().Informer()}, nil
 
 	}
 

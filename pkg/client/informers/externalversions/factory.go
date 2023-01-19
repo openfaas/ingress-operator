@@ -1,5 +1,5 @@
 /*
-Copyright 2019 OpenFaaS Authors
+Copyright 2019-2021 OpenFaaS Authors
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -13,9 +13,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions/internalinterfaces"
-	openfaas "github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions/openfaas"
+	versioned "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions/internalinterfaces"
+	openfaas "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions/openfaas"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

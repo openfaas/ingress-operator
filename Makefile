@@ -1,4 +1,7 @@
 TAG?=latest
+SERVER?=ghcr.io
+OWNER?=openfaas
+IMAGE := ingress-operator
 
 .GIT_COMMIT=$(shell git rev-parse HEAD)
 .GIT_VERSION=$(shell git describe --tags 2>/dev/null || echo "$(.GIT_COMMIT)")
@@ -17,9 +20,7 @@ GOPATH := $(shell go env GOPATH)
 CODEGEN_VERSION := $(shell hack/print-codegen-version.sh)
 CODEGEN_PKG := $(GOPATH)/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}
 
-OWNER?=openfaas
-REPOSITORY?="ghcr.io/$(OWNER)"
-NAME := ingress-operator
+
 
 ARCH?=linux/amd64
 MULTIARCH?=linux/amd64,linux/arm/v7,linux/arm64
@@ -34,46 +35,46 @@ ${CODEGEN_PKG}: $(TOOLS_DIR)/code-generator.mod
 
 .PHONY: build
 build:
-	@echo "building  $(REPOSITORY)/$(NAME):$(TAG)"
+	@echo "building  $(SERVER)/$(OWNER)/$(IMAGE):$(TAG)"
 	@docker build \
 	--build-arg VERSION=$(.GIT_VERSION) \
 	--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
-	-t  $(REPOSITORY)/$(NAME):$(TAG) .
+	-t  $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) .
 
 .PHONY: build-buildx
 build-buildx:
-	@echo  $(REPOSITORY)/$(NAME):$(TAG) && \
+	@echo  $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) && \
 	docker buildx create --use --name=multiarch --node=multiarch && \
 	docker buildx build \
 		--push \
 		--platform $(ARCH) \
 		--build-arg VERSION=$(.GIT_VERSION) \
 		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
-		--tag  $(REPOSITORY)/$(NAME):$(TAG) \
+		--tag  $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) \
 		.
 
 .PHONY: build-buildx-all
 build-buildx-all:
-	@echo  "build $(REPOSITORY)/$(NAME):$(TAG) for $(MULTIARCH)"
+	@echo  "build $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) for $(MULTIARCH)"
 	@docker buildx create --use --name=multiarch --node=multiarch && \
 	docker buildx build \
 		--platform $(MULTIARCH) \
 		--output "type=image,push=false" \
 		--build-arg VERSION=$(.GIT_VERSION) \
 		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
-		--tag $(REPOSITORY)/$(NAME):$(TAG) \
+		--tag $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) \
 		.
 
 .PHONY: publish-buildx-all
 publish-buildx-all:
-	@echo  "build and publish $(REPOSITORY)/$(NAME):$(TAG) for $(MULTIARCH)"
+	@echo  "build and publish $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) for $(MULTIARCH)"
 	@docker buildx create --use --name=multiarch --node=multiarch && \
 	docker buildx build \
 		--platform $(MULTIARCH) \
 		--push=true \
 		--build-arg VERSION=$(.GIT_VERSION) \
 		--build-arg GIT_COMMIT=$(.GIT_COMMIT) \
-		--tag $(REPOSITORY)/$(NAME):$(TAG) \
+		--tag $(SERVER)/$(OWNER)/$(IMAGE):$(TAG) \
 		.
 
 .PHONY: test
@@ -92,4 +93,4 @@ update-codegen: ${CODEGEN_PKG}
 charts:
 	cd chart && helm package ingress-operator/
 	mv chart/*.tgz docs/
-	helm repo index docs --url https://openfaas-incubator.github.io/ingress-operator/ --merge ./docs/index.yaml
+	helm repo index docs --url https://openfaas.github.io/ingress-operator/ --merge ./docs/index.yaml

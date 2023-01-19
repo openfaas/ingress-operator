@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	faasv1 "github.com/openfaas-incubator/ingress-operator/pkg/apis/openfaas/v1alpha2"
-	"github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/scheme"
-	faasscheme "github.com/openfaas-incubator/ingress-operator/pkg/client/clientset/versioned/scheme"
-	"github.com/openfaas-incubator/ingress-operator/pkg/client/informers/externalversions/openfaas/v1alpha2"
-	listers "github.com/openfaas-incubator/ingress-operator/pkg/client/listers/openfaas/v1alpha2"
+	faasv1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
+	"github.com/openfaas/ingress-operator/pkg/client/clientset/versioned/scheme"
+	faasscheme "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned/scheme"
+	v1 "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions/openfaas/v1"
+	listers "github.com/openfaas/ingress-operator/pkg/client/listers/openfaas/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -184,7 +184,7 @@ func (c BaseController) HandleObject(obj interface{}) {
 }
 
 func (c BaseController) SetupEventHandlers(
-	functionIngress v1alpha2.FunctionIngressInformer,
+	functionIngress v1.FunctionIngressInformer,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 ) {
 	functionIngress.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

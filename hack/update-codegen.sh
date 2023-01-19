@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# copied from: https://github.com/weaveworks/flagger/tree/master/hack
 
 set -o errexit
 set -o nounset
@@ -7,8 +9,8 @@ set -o pipefail
 SCRIPT_ROOT=$(git rev-parse --show-toplevel)
 
 # Grab code-generator version from go.sum.
-CODEGEN_VERSION=$(grep 'k8s.io/code-generator' go.mod | awk '{print $2}')
-CODEGEN_PKG="$(go env GOPATH)/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}"
+CODEGEN_VERSION=$(grep 'k8s.io/code-generator' go.sum | awk '{print $2}' | head -1)
+CODEGEN_PKG=$(echo `go env GOPATH`"/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}")
 
 echo ">> Using ${CODEGEN_PKG}"
 
@@ -29,10 +31,10 @@ echo ">> Temporary output directory ${TEMP_DIR}"
 chmod +x ${CODEGEN_PKG}/generate-groups.sh
 
 ${CODEGEN_PKG}/generate-groups.sh all \
-    github.com/openfaas-incubator/ingress-operator/pkg/client github.com/openfaas-incubator/ingress-operator/pkg/apis \
-    openfaas:v1alpha2 \
+    github.com/openfaas/ingress-operator/pkg/client github.com/openfaas/ingress-operator/pkg/apis \
+    openfaas:v1 \
     --output-base "${TEMP_DIR}" \
-    --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt
+    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
 
 # Copy everything back.
-cp -r "${TEMP_DIR}/github.com/openfaas-incubator/ingress-operator/." "${SCRIPT_ROOT}/"
+cp -r "${TEMP_DIR}/github.com/openfaas/ingress-operator/." "${SCRIPT_ROOT}/"
