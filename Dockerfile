@@ -39,15 +39,11 @@ RUN go build -mod=vendor -ldflags "-s -w \
 # ca-certificates and tmp folder are also missing in scratch
 # so we add all of it here and copy files in next stage
 
-FROM scratch
-
+FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static:nonroot as ship
 LABEL org.opencontainers.image.source=https://github.com/openfaas/ingress-operator
 
-COPY --from=builder /etc/passwd /etc/group /etc/
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder --chown=app:app /scratch-tmp /tmp/
+WORKDIR /
 COPY --from=builder /go/src/github.com/openfaas/ingress-operator/ingress-operator .
+USER nonroot:nonroot
 
-USER app
-
-CMD ["./ingress-operator"]
+CMD ["/ingress-operator"]

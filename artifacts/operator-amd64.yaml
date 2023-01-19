@@ -19,7 +19,7 @@ spec:
       serviceAccountName: ingress-operator
       containers:
       - name: operator
-        image: docker.io/alexellis2/ingress-operator:1
+        image: docker.io/alexellis2/ingress-operator:2
         imagePullPolicy: Always
         command:
           - ./ingress-operator
