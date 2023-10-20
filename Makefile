@@ -20,8 +20,6 @@ GOPATH := $(shell go env GOPATH)
 CODEGEN_VERSION := $(shell hack/print-codegen-version.sh)
 CODEGEN_PKG := $(GOPATH)/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION}
 
-
-
 ARCH?=linux/amd64
 MULTIARCH?=linux/amd64,linux/arm/v7,linux/arm64
 

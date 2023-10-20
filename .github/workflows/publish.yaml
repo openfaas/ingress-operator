@@ -16,12 +16,9 @@ jobs:
       pull-requests: read
       repository-projects: read
       statuses: read
+
     steps:
       - uses: actions/checkout@master
-      - name: Install Go
-        uses: actions/setup-go@v3.1.0
-        with:
-          go-version: 1.19.x
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
