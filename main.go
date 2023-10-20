@@ -10,7 +10,6 @@ import (
 	clientset "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned"
 	informers "github.com/openfaas/ingress-operator/pkg/client/informers/externalversions"
 	controllerv1 "github.com/openfaas/ingress-operator/pkg/controller/v1"
-	controllerv1beta1 "github.com/openfaas/ingress-operator/pkg/controller/v1beta1"
 	"github.com/openfaas/ingress-operator/pkg/signals"
 	"github.com/openfaas/ingress-operator/pkg/version"
 	kubeinformers "k8s.io/client-go/informers"
@@ -31,11 +30,7 @@ var (
 	kubeconfig string
 )
 
-var pullPolicyOptions = map[string]bool{
-	"Always":       true,
-	"IfNotPresent": true,
-	"Never":        true,
-}
+const defaultResync = time.Hour * 10
 
 func init() {
 	klog.InitFlags(nil)
@@ -78,8 +73,6 @@ func main() {
 		ingressNamespace = namespace
 	}
 
-	defaultResync := time.Second * 30
-
 	kubeInformerOpt := kubeinformers.WithNamespace(ingressNamespace)
 	kubeInformerFactory := kubeinformers.
 		NewSharedInformerFactoryWithOptions(kubeClient, defaultResync, kubeInformerOpt)
@@ -88,31 +81,12 @@ func main() {
 	faasInformerFactory := informers.
 		NewSharedInformerFactoryWithOptions(faasClient, defaultResync, faasInformerOpt)
 
-	capabilities, err := getPreferredAvailableAPIs(kubeClient, "Ingress")
-	if err != nil {
-		klog.Fatalf("Error retrieving Kubernetes cluster capabilities: %s", err.Error())
-	}
-
-	klog.Infof("cluster supports ingress in: %s", capabilities)
-
-	var ctrl controller
-	// prefer v1, if it is available, this removes any deprecation warnings
-	if capabilities.Has("networking.k8s.io/v1") {
-		ctrl = controllerv1.NewController(
-			kubeClient,
-			faasClient,
-			kubeInformerFactory,
-			faasInformerFactory,
-		)
-	} else {
-		// use v1beta1 by default
-		ctrl = controllerv1beta1.NewController(
-			kubeClient,
-			faasClient,
-			kubeInformerFactory,
-			faasInformerFactory,
-		)
-	}
+	ctrl := controllerv1.NewController(
+		kubeClient,
+		faasClient,
+		kubeInformerFactory,
+		faasInformerFactory,
+	)
 
 	go kubeInformerFactory.Start(stopCh)
 	go faasInformerFactory.Start(stopCh)
@@ -120,10 +94,6 @@ func main() {
 	if err = ctrl.Run(1, stopCh); err != nil {
 		klog.Fatalf("Error running controller: %s", err.Error())
 	}
-}
-
-type controller interface {
-	Run(int, <-chan struct{}) error
 }
 
 func setupLogging() {
@@ -152,24 +122,6 @@ func (c Capabilities) String() string {
 		keys = append(keys, k)
 	}
 	return strings.Join(keys, ", ")
-}
-
-// getCapabilities returns the list of available api groups in the cluster.
-func getCapabilities(client kubernetes.Interface) (Capabilities, error) {
-
-	groupList, err := client.Discovery().ServerGroups()
-	if err != nil {
-		return nil, err
-	}
-
-	caps := Capabilities{}
-	for _, g := range groupList.Groups {
-		for _, gv := range g.Versions {
-			caps[gv.GroupVersion] = true
-		}
-	}
-
-	return caps, nil
 }
 
 // getPreferredAvailableAPIs queries the cluster for the preferred resources information and returns a Capabilities

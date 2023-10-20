@@ -1,5 +1,5 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/openfaas/license-check:0.4.1 as license-check
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19 as builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/openfaas/license-check:0.4.2 as license-check
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.21 as builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -30,7 +30,7 @@ RUN go test -mod=vendor -v ./...
 RUN go build -mod=vendor -ldflags "-s -w \
   -X github.com/openfaas/ingress-operator/pkg/version.Release=${VERSION} \
   -X github.com/openfaas/ingress-operator/pkg/version.SHA=${GIT_COMMIT}" \
-  -a -installsuffix cgo -o ingress-operator . && \
+  -o ingress-operator . && \
   addgroup --system app && \
   adduser --system --ingroup app app && \
   mkdir /scratch-tmp

@@ -100,7 +100,7 @@ func (h SyncHandler) handler(ctx context.Context, key string) error {
 	}
 
 	fniName := fni.ObjectMeta.Name
-	klog.Infof("FunctionIngress name: %v", fniName)
+	// klog.Infof("FunctionIngress name: %v", fniName)
 
 	ingresses := h.ingressLister.Ingresses(namespace)
 	ingress, getIngressErr := ingresses.Get(fni.Name)
@@ -109,10 +109,12 @@ func (h SyncHandler) handler(ctx context.Context, key string) error {
 		klog.Errorf("cannot get ingress: %s in %s, error: %s", fni.Name, namespace, getIngressErr.Error())
 	}
 
-	klog.Info("fni.Spec.UseTLS() ", fni.Spec.UseTLS())
-	klog.Info("createIngress ", createIngress)
+	// klog.Info("fni.Spec.UseTLS() ", fni.Spec.UseTLS())
+	// klog.Info("createIngress ", createIngress)
 
 	if createIngress {
+		klog.Infof("Creating Ingress for: %v", fniName)
+
 		rules := makeRules(fni)
 		tls := makeTLS(fni)
 
