@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2021 OpenFaaS Authors
+Copyright 2023 OpenFaaS Author(s)
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -10,9 +10,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
+	openfaasv1 "github.com/openfaas/ingress-operator/pkg/client/applyconfiguration/openfaas/v1"
 	scheme "github.com/openfaas/ingress-operator/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -36,6 +39,7 @@ type FunctionIngressInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.FunctionIngressList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.FunctionIngress, err error)
+	Apply(ctx context.Context, functionIngress *openfaasv1.FunctionIngressApplyConfiguration, opts metav1.ApplyOptions) (result *v1.FunctionIngress, err error)
 	FunctionIngressExpansion
 }
 
@@ -161,6 +165,32 @@ func (c *functionIngresses) Patch(ctx context.Context, name string, pt types.Pat
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied functionIngress.
+func (c *functionIngresses) Apply(ctx context.Context, functionIngress *openfaasv1.FunctionIngressApplyConfiguration, opts metav1.ApplyOptions) (result *v1.FunctionIngress, err error) {
+	if functionIngress == nil {
+		return nil, fmt.Errorf("functionIngress provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(functionIngress)
+	if err != nil {
+		return nil, err
+	}
+	name := functionIngress.Name
+	if name == nil {
+		return nil, fmt.Errorf("functionIngress.Name must be provided to Apply")
+	}
+	result = &v1.FunctionIngress{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Namespace(c.ns).
+		Resource("functioningresses").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)
