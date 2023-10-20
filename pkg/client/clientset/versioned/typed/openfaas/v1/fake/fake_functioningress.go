@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2021 OpenFaaS Authors
+Copyright 2023 OpenFaaS Author(s)
 
 Licensed under the MIT license. See LICENSE file in the project root for full license information.
 */
@@ -10,11 +10,13 @@ package fake
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 
-	openfaasv1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/openfaas/ingress-operator/pkg/apis/openfaas/v1"
+	openfaasv1 "github.com/openfaas/ingress-operator/pkg/client/applyconfiguration/openfaas/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -26,25 +28,25 @@ type FakeFunctionIngresses struct {
 	ns   string
 }
 
-var functioningressesResource = schema.GroupVersionResource{Group: "openfaas.com", Version: "v1", Resource: "functioningresses"}
+var functioningressesResource = v1.SchemeGroupVersion.WithResource("functioningresses")
 
-var functioningressesKind = schema.GroupVersionKind{Group: "openfaas.com", Version: "v1", Kind: "FunctionIngress"}
+var functioningressesKind = v1.SchemeGroupVersion.WithKind("FunctionIngress")
 
 // Get takes name of the functionIngress, and returns the corresponding functionIngress object, and an error if there is any.
-func (c *FakeFunctionIngresses) Get(ctx context.Context, name string, options v1.GetOptions) (result *openfaasv1.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.FunctionIngress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(functioningressesResource, c.ns, name), &openfaasv1.FunctionIngress{})
+		Invokes(testing.NewGetAction(functioningressesResource, c.ns, name), &v1.FunctionIngress{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openfaasv1.FunctionIngress), err
+	return obj.(*v1.FunctionIngress), err
 }
 
 // List takes label and field selectors, and returns the list of FunctionIngresses that match those selectors.
-func (c *FakeFunctionIngresses) List(ctx context.Context, opts v1.ListOptions) (result *openfaasv1.FunctionIngressList, err error) {
+func (c *FakeFunctionIngresses) List(ctx context.Context, opts metav1.ListOptions) (result *v1.FunctionIngressList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(functioningressesResource, functioningressesKind, c.ns, opts), &openfaasv1.FunctionIngressList{})
+		Invokes(testing.NewListAction(functioningressesResource, functioningressesKind, c.ns, opts), &v1.FunctionIngressList{})
 
 	if obj == nil {
 		return nil, err
@@ -54,8 +56,8 @@ func (c *FakeFunctionIngresses) List(ctx context.Context, opts v1.ListOptions) (
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &openfaasv1.FunctionIngressList{ListMeta: obj.(*openfaasv1.FunctionIngressList).ListMeta}
-	for _, item := range obj.(*openfaasv1.FunctionIngressList).Items {
+	list := &v1.FunctionIngressList{ListMeta: obj.(*v1.FunctionIngressList).ListMeta}
+	for _, item := range obj.(*v1.FunctionIngressList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -64,57 +66,79 @@ func (c *FakeFunctionIngresses) List(ctx context.Context, opts v1.ListOptions) (
 }
 
 // Watch returns a watch.Interface that watches the requested functionIngresses.
-func (c *FakeFunctionIngresses) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFunctionIngresses) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(functioningressesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a functionIngress and creates it.  Returns the server's representation of the functionIngress, and an error, if there is any.
-func (c *FakeFunctionIngresses) Create(ctx context.Context, functionIngress *openfaasv1.FunctionIngress, opts v1.CreateOptions) (result *openfaasv1.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Create(ctx context.Context, functionIngress *v1.FunctionIngress, opts metav1.CreateOptions) (result *v1.FunctionIngress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(functioningressesResource, c.ns, functionIngress), &openfaasv1.FunctionIngress{})
+		Invokes(testing.NewCreateAction(functioningressesResource, c.ns, functionIngress), &v1.FunctionIngress{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openfaasv1.FunctionIngress), err
+	return obj.(*v1.FunctionIngress), err
 }
 
 // Update takes the representation of a functionIngress and updates it. Returns the server's representation of the functionIngress, and an error, if there is any.
-func (c *FakeFunctionIngresses) Update(ctx context.Context, functionIngress *openfaasv1.FunctionIngress, opts v1.UpdateOptions) (result *openfaasv1.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Update(ctx context.Context, functionIngress *v1.FunctionIngress, opts metav1.UpdateOptions) (result *v1.FunctionIngress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(functioningressesResource, c.ns, functionIngress), &openfaasv1.FunctionIngress{})
+		Invokes(testing.NewUpdateAction(functioningressesResource, c.ns, functionIngress), &v1.FunctionIngress{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openfaasv1.FunctionIngress), err
+	return obj.(*v1.FunctionIngress), err
 }
 
 // Delete takes name of the functionIngress and deletes it. Returns an error if one occurs.
-func (c *FakeFunctionIngresses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (c *FakeFunctionIngresses) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(functioningressesResource, c.ns, name), &openfaasv1.FunctionIngress{})
+		Invokes(testing.NewDeleteActionWithOptions(functioningressesResource, c.ns, name, opts), &v1.FunctionIngress{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFunctionIngresses) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+func (c *FakeFunctionIngresses) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(functioningressesResource, c.ns, listOpts)
 
-	_, err := c.Fake.Invokes(action, &openfaasv1.FunctionIngressList{})
+	_, err := c.Fake.Invokes(action, &v1.FunctionIngressList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched functionIngress.
-func (c *FakeFunctionIngresses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *openfaasv1.FunctionIngress, err error) {
+func (c *FakeFunctionIngresses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.FunctionIngress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(functioningressesResource, c.ns, name, pt, data, subresources...), &openfaasv1.FunctionIngress{})
+		Invokes(testing.NewPatchSubresourceAction(functioningressesResource, c.ns, name, pt, data, subresources...), &v1.FunctionIngress{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openfaasv1.FunctionIngress), err
+	return obj.(*v1.FunctionIngress), err
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied functionIngress.
+func (c *FakeFunctionIngresses) Apply(ctx context.Context, functionIngress *openfaasv1.FunctionIngressApplyConfiguration, opts metav1.ApplyOptions) (result *v1.FunctionIngress, err error) {
+	if functionIngress == nil {
+		return nil, fmt.Errorf("functionIngress provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(functionIngress)
+	if err != nil {
+		return nil, err
+	}
+	name := functionIngress.Name
+	if name == nil {
+		return nil, fmt.Errorf("functionIngress.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(functioningressesResource, c.ns, *name, types.ApplyPatchType, data), &v1.FunctionIngress{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1.FunctionIngress), err
 }
