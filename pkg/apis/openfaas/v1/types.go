@@ -15,6 +15,14 @@ type FunctionIngress struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec FunctionIngressSpec `json:"spec"`
+
+	// +optional
+	Status FunctionIngressStatus `json:"status"`
+}
+
+// FunctionIngressStatus is the status for a FunctionIngress resource
+type FunctionIngressStatus struct {
+	Conditions []metav1.Condition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
 // FunctionIngressSpec is the spec for a FunctionIngress resource. It must
