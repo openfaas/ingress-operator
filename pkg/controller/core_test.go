@@ -79,6 +79,22 @@ func TestMakeAnnotations(t *testing.T) {
 			},
 		},
 		{
+			name: "default annotations includes a rewrite-target with namespace in path",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:       "nginx",
+					Function:          "nodeinfo",
+					FunctionNamespace: "staging-fn",
+				},
+			},
+			expected: map[string]string{
+				"nginx.ingress.kubernetes.io/rewrite-target": "/function/nodeinfo.staging-fn/$1",
+			},
+		},
+		{
 			name: "creates required traefik annotations",
 			ingress: faasv1.FunctionIngress{
 				ObjectMeta: metav1.ObjectMeta{
@@ -95,6 +111,27 @@ func TestMakeAnnotations(t *testing.T) {
 			},
 			expected: map[string]string{
 				"traefik.ingress.kubernetes.io/rewrite-target": "/function/nodeinfo",
+				"traefik.ingress.kubernetes.io/rule-type":      "PathPrefix",
+			},
+		},
+		{
+			name: "creates required traefik annotations with namespace in path",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "traefik",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:       "traefik",
+					Function:          "nodeinfo",
+					FunctionNamespace: "staging-fn",
+					BypassGateway:     false,
+					Domain:            "nodeinfo.example.com",
+				},
+			},
+			expected: map[string]string{
+				"traefik.ingress.kubernetes.io/rewrite-target": "/function/nodeinfo.staging-fn",
 				"traefik.ingress.kubernetes.io/rule-type":      "PathPrefix",
 			},
 		},
@@ -116,6 +153,27 @@ func TestMakeAnnotations(t *testing.T) {
 			expected: map[string]string{
 				"kubernetes.io/ingress.class": "skipper",
 				"zalando.org/skipper-filter":  `setPath("/function/nodeinfo")`,
+			},
+		},
+		{
+			name: "creates required skipper annotations with namespace in path",
+			ingress: faasv1.FunctionIngress{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"kubernetes.io/ingress.class": "skipper",
+					},
+				},
+				Spec: faasv1.FunctionIngressSpec{
+					IngressType:       "skipper",
+					Function:          "nodeinfo",
+					FunctionNamespace: "staging-fn",
+					BypassGateway:     false,
+					Domain:            "nodeinfo.example.com",
+				},
+			},
+			expected: map[string]string{
+				"kubernetes.io/ingress.class": "skipper",
+				"zalando.org/skipper-filter":  `setPath("/function/nodeinfo.staging-fn")`,
 			},
 		},
 		{

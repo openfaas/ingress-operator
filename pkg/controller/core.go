@@ -256,16 +256,21 @@ func MakeAnnotations(fni *faasv1.FunctionIngress) map[string]string {
 	annotations["kubernetes.io/ingress.class"] = class
 	annotations["com.openfaas.spec"] = string(specJSON)
 
+	fnNamespace := ""
+	if fni.Spec.FunctionNamespace != "" {
+		fnNamespace = fmt.Sprintf(".%s", fni.Spec.FunctionNamespace)
+	}
+
 	if !fni.Spec.BypassGateway {
 		switch class {
 		case "nginx":
-			annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + "/$1"
+			annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + fnNamespace + "/$1"
 			break
 		case "skipper":
-			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + fni.Spec.Function + `")`
+			annotations["zalando.org/skipper-filter"] = `setPath("/function/` + fni.Spec.Function + fnNamespace + `")`
 			break
 		case "traefik":
-			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function
+			annotations["traefik.ingress.kubernetes.io/rewrite-target"] = "/function/" + fni.Spec.Function + fnNamespace
 			annotations["traefik.ingress.kubernetes.io/rule-type"] = `PathPrefix`
 			break
 		}

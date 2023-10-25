@@ -11,12 +11,13 @@ package v1
 // FunctionIngressSpecApplyConfiguration represents an declarative configuration of the FunctionIngressSpec type for use
 // with apply.
 type FunctionIngressSpecApplyConfiguration struct {
-	Domain        *string                               `json:"domain,omitempty"`
-	Function      *string                               `json:"function,omitempty"`
-	Path          *string                               `json:"path,omitempty"`
-	IngressType   *string                               `json:"ingressType,omitempty"`
-	TLS           *FunctionIngressTLSApplyConfiguration `json:"tls,omitempty"`
-	BypassGateway *bool                                 `json:"bypassGateway,omitempty"`
+	Domain            *string                               `json:"domain,omitempty"`
+	Function          *string                               `json:"function,omitempty"`
+	FunctionNamespace *string                               `json:"functionNamespace,omitempty"`
+	Path              *string                               `json:"path,omitempty"`
+	IngressType       *string                               `json:"ingressType,omitempty"`
+	TLS               *FunctionIngressTLSApplyConfiguration `json:"tls,omitempty"`
+	BypassGateway     *bool                                 `json:"bypassGateway,omitempty"`
 }
 
 // FunctionIngressSpecApplyConfiguration constructs an declarative configuration of the FunctionIngressSpec type for use with
@@ -38,6 +39,14 @@ func (b *FunctionIngressSpecApplyConfiguration) WithDomain(value string) *Functi
 // If called multiple times, the Function field is set to the value of the last call.
 func (b *FunctionIngressSpecApplyConfiguration) WithFunction(value string) *FunctionIngressSpecApplyConfiguration {
 	b.Function = &value
+	return b
+}
+
+// WithFunctionNamespace sets the FunctionNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the FunctionNamespace field is set to the value of the last call.
+func (b *FunctionIngressSpecApplyConfiguration) WithFunctionNamespace(value string) *FunctionIngressSpecApplyConfiguration {
+	b.FunctionNamespace = &value
 	return b
 }
 

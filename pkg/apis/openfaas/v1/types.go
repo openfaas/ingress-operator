@@ -34,6 +34,9 @@ type FunctionIngressSpec struct {
 	// Function such as "nodeinfo"
 	Function string `json:"function"`
 
+	// Namespace for function such as "openfaas-fn"
+	FunctionNamespace string `json:"functionNamespace,omitempty"`
+
 	// Path such as "/v1/profiles/view/(.*)", or leave empty for default
 	// +optional
 	Path string `json:"path"`

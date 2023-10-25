@@ -109,6 +109,11 @@ func (h SyncHandler) handler(ctx context.Context, key string) error {
 		klog.Errorf("cannot get ingress: %s in %s, error: %s", fni.Name, namespace, getIngressErr.Error())
 	}
 
+	if fni.Spec.BypassGateway && fni.Spec.FunctionNamespace != fni.Namespace {
+		klog.Errorf("gateway bypass can not have diffeent function ingress namespace and function namespace")
+		return nil
+	}
+
 	// klog.Info("fni.Spec.UseTLS() ", fni.Spec.UseTLS())
 	// klog.Info("createIngress ", createIngress)
 
