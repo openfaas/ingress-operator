@@ -13,16 +13,16 @@ jobs:
       - uses: actions/checkout@master
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
 
       - name: Build multi-arch containers for validation only
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -30,7 +30,7 @@ jobs:
           build-args: |
             VERSION=latest-dev
             GIT_COMMIT=${{ github.sha }}
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ env.REPO_OWNER }}/ingress-operator:${{ github.sha }}
 
